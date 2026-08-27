@@ -9,6 +9,7 @@ import { requestLogger } from './middleware/requestLogger.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { sendSuccess, sendError } from './utils/response.js';
+import { authRouter } from './modules/auth/auth.routes.js';
 
 const { name, version } = createRequire(import.meta.url)('../package.json');
 
@@ -41,7 +42,7 @@ export function createApp() {
     }
   });
 
-  // Feature routers are added here in Step 27.
+  app.use('/auth', authRouter);
 
   app.use(notFound);
   app.use(errorHandler);
