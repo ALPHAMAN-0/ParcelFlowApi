@@ -1,7 +1,7 @@
 {
   "name": "ParcelFlowApi",
   "version": "1.0.0",
-  "description": "",
+  "description": "REST API for parcel delivery management",
   "main": "index.js",
   "type": "module",
   "engines": {
@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch --env-file=.env src/server.js",
+    "check": "bash scripts/check.sh",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate dev",
@@ -21,7 +22,7 @@
     "seed": "node prisma/seed.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Siam",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.3",
