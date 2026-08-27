@@ -1,20 +1,16 @@
 {
-  "name": "parcelflowapi",
+  "name": "ParcelFlowApi",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ALPHAMAN-0/ParcelFlowApi.git"
-  },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/ALPHAMAN-0/ParcelFlowApi/issues"
-  },
-  "homepage": "https://github.com/ALPHAMAN-0/ParcelFlowApi#readme"
+  "license": "ISC"
 }
