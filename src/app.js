@@ -10,6 +10,7 @@ import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { sendSuccess, sendError } from './utils/response.js';
 import { authRouter } from './modules/auth/auth.routes.js';
+import { parcelsRouter } from './modules/parcels/parcels.routes.js';
 
 const { name, version } = createRequire(import.meta.url)('../package.json');
 
@@ -43,7 +44,7 @@ export function createApp() {
   });
 
   app.use('/auth', authRouter);
-
+  app.use('/parcels', parcelsRouter);
   app.use(notFound);
   app.use(errorHandler);
 
