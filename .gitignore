@@ -1,0 +1,17 @@
+# --- secrets first: never commit environment files ---
+.env
+.env.*
+!.env.example
+
+# dependencies
+node_modules/
+
+# generated
+coverage/
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
