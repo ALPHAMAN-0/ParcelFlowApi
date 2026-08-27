@@ -1,0 +1,93 @@
+
+// ParcelFlow API — Prisma schema
+// See docs/architecture.md §5 for the reasoning behind every field and index.
+
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" builds for the developer machine; the second target is the
+  // OpenSSL flavour used by Render's / Debian-based build containers.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Runtime queries. On Neon: the POOLED endpoint (pgbouncer=true&connection_limit=1).
+  url       = env("DATABASE_URL")
+  // Migrations only. On Neon: the DIRECT endpoint (DDL cannot run through a pooler).
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CUSTOMER
+  DELIVERY_STAFF
+  ADMIN
+}
+
+/// Strictly linear: PENDING → PICKED_UP → IN_TRANSIT → OUT_FOR_DELIVERY → DELIVERED.
+/// The legal transitions live in src/domain/parcelStatus.js, not here.
+enum ParcelStatus {
+  PENDING
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+model User {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  email     String   @unique
+  password  String // bcrypt hash — never returned by any endpoint
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+
+  // User relates to Parcel twice — as owner and as assignee — so both
+  // relations must be named or Prisma cannot tell them apart.
+  parcelsOwned    Parcel[]              @relation("ParcelCustomer")
+  parcelsAssigned Parcel[]              @relation("ParcelAssignedStaff")
+  statusChanges   ParcelStatusHistory[]
+
+  @@map("users")
+}
+
+model Parcel {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  trackingCode    String       @unique
+  senderName      String
+  receiverName    String
+  pickupArea      String
+  deliveryArea    String
+  parcelType      String
+  status          ParcelStatus @default(PENDING)
+  customerId      String       @db.Uuid // owner — required to express "their parcels"
+  assignedStaffId String?      @db.Uuid // null until an admin assigns someone
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  customer      User                  @relation("ParcelCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  assignedStaff User?                 @relation("ParcelAssignedStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  history       ParcelStatusHistory[]
+
+  @@index([status]) // status filter + admin stats grouping
+  @@index([deliveryArea]) // delivery-area filter
+  @@index([customerId]) // every customer's own list
+  @@index([assignedStaffId]) // every staff member's work queue
+  @@map("parcels")
+}
+
+/// Append-only audit trail. Nothing updates or deletes a row here.
+model ParcelStatusHistory {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  parcelId    String        @db.Uuid
+  oldStatus   ParcelStatus? // null only on the creation record (nothing → PENDING)
+  newStatus   ParcelStatus
+  changedById String        @db.Uuid
+  createdAt   DateTime      @default(now())
+
+  parcel    Parcel @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+  changedBy User   @relation(fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([parcelId, createdAt]) // ordered history fetch served by the index
+  @@map("parcel_status_history")
+}
