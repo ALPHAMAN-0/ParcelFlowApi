@@ -1,0 +1,646 @@
+{
+  "info": {
+    "name": "ParcelFlow API",
+    "description": "Parcel delivery management API.\n\nRun the three requests in Auth > Log in first. Each one stores its token in a collection variable, so every other request works without pasting anything.\n\nOrder that works top to bottom:\n1. Auth > Log in as admin / staff / customer\n2. Parcels > Create parcel (captures parcelId and trackingCode)\n3. Admin > List delivery staff (captures staffId)\n4. Parcels > Assign staff\n5. Parcels > Advance status, four times\n\nBase URL is a collection variable. Change it once to point at a deployed instance.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "customerToken", "value": "", "type": "string" },
+    { "key": "staffToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "parcelId", "value": "", "type": "string" },
+    { "key": "trackingCode", "value": "", "type": "string" },
+    { "key": "staffId", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Service info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Service name, version, and the route prefixes that exist."
+          },
+          "response": []
+        },
+        {
+          "name": "Shallow health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Process is up. Never queries the database."
+          },
+          "response": []
+        },
+        {
+          "name": "Deep health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/db",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "db"]
+            },
+            "description": "Queries the database too. Returns 503 when it is unreachable."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Log in as customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.success) {",
+                  "  pm.collectionVariables.set('customerToken', d.data.token);",
+                  "}",
+                  "pm.test('200 and a token', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(d.data.token).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ayesha.customer@parcelflow.dev\",\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Stores the token in {{customerToken}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Log in as delivery staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.success) {",
+                  "  pm.collectionVariables.set('staffToken', d.data.token);",
+                  "  pm.collectionVariables.set('staffId', d.data.user.id);",
+                  "}",
+                  "pm.test('200 and a token', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rahim.staff@parcelflow.dev\",\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Stores the token in {{staffToken}} and the user id in {{staffId}}, so Assign staff works without a lookup."
+          },
+          "response": []
+        },
+        {
+          "name": "Log in as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.success) {",
+                  "  pm.collectionVariables.set('adminToken', d.data.token);",
+                  "}",
+                  "pm.test('200 and a token', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@parcelflow.dev\",\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Stores the token in {{adminToken}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 and role is CUSTOMER', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json().data.user.role).to.eql('CUSTOMER');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Customer\",\n  \"email\": \"new.customer@example.com\",\n  \"password\": \"Passw0rd!23\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Always creates a CUSTOMER. Change the email to re-run, or it returns 409."
+          },
+          "response": []
+        },
+        {
+          "name": "Register with role (must be 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rejected with 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sneaky\",\n  \"email\": \"sneaky@example.com\",\n  \"password\": \"Passw0rd!23\",\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "The schema is a strictObject, so an unexpected role key is rejected outright. No account is created."
+          },
+          "response": []
+        },
+        {
+          "name": "Login with wrong password (must be 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 INVALID_CREDENTIALS', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().error.code).to.eql('INVALID_CREDENTIALS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@parcelflow.dev\",\n  \"password\": \"wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Compare this response with the next one. They are identical apart from requestId, so login cannot be used to find out which addresses are registered."
+          },
+          "response": []
+        },
+        {
+          "name": "Login with unknown email (must be 401, identical)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('same code and message as wrong password', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.eql('INVALID_CREDENTIALS');",
+                  "  pm.expect(e.message).to.eql('Invalid email or password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nobody@example.com\",\n  \"password\": \"wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Who am I",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "The user is re-read from the database on every request, so a demoted or deleted account loses access immediately."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Parcels",
+      "item": [
+        {
+          "name": "Create parcel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.success) {",
+                  "  pm.collectionVariables.set('parcelId', d.data.id);",
+                  "  pm.collectionVariables.set('trackingCode', d.data.trackingCode);",
+                  "}",
+                  "pm.test('201 and starts in PENDING', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(d.data.status).to.eql('PENDING');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senderName\": \"Ayesha Rahman\",\n  \"receiverName\": \"Tanvir Hasan\",\n  \"pickupArea\": \"Gulshan\",\n  \"deliveryArea\": \"Dhanmondi\",\n  \"parcelType\": \"Documents\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parcels",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels"]
+            },
+            "description": "Stores {{parcelId}} and {{trackingCode}} for the requests below. The parcel and its first history row are written in one transaction."
+          },
+          "response": []
+        },
+        {
+          "name": "List parcels",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/parcels?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "status", "value": "PENDING", "disabled": true },
+                { "key": "deliveryArea", "value": "Dhanmondi", "disabled": true },
+                { "key": "pickupArea", "value": "Gulshan", "disabled": true },
+                { "key": "trackingCode", "value": "PF-", "disabled": true },
+                { "key": "sort", "value": "createdAt:desc", "disabled": true }
+              ]
+            },
+            "description": "Scoped to what the caller may see. Swap the token for {{adminToken}} to see everything, or {{staffToken}} to see only assigned parcels. The optional filters are disabled; tick them in Postman to try them."
+          },
+          "response": []
+        },
+        {
+          "name": "Track by code",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/parcels/{{trackingCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels", "{{trackingCode}}"]
+            },
+            "description": "Rate limited. Returns the parcel with its full history."
+          },
+          "response": []
+        },
+        {
+          "name": "Parcel history",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('oldest first, first row has no old status', () => {",
+                  "  const h = pm.response.json().data.history;",
+                  "  pm.expect(h[0].oldStatus).to.eql(null);",
+                  "  pm.expect(h[0].newStatus).to.eql('PENDING');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/parcels/{{parcelId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels", "{{parcelId}}", "history"]
+            },
+            "description": "The audit trail, oldest first. A customer can read this but cannot write to it."
+          },
+          "response": []
+        },
+        {
+          "name": "Assign staff (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": \"{{staffId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parcels/{{parcelId}}/assign",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels", "{{parcelId}}", "assign"]
+            },
+            "description": "Uses {{staffId}} captured by the staff login. Send null to clear the assignment. 422 if the target is not delivery staff."
+          },
+          "response": []
+        },
+        {
+          "name": "Advance status (staff)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "// Run four times, editing status each time:",
+                  "// PICKED_UP, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PICKED_UP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parcels/{{parcelId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels", "{{parcelId}}", "status"]
+            },
+            "description": "Run this four times, changing status each time: PICKED_UP, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED. Requires the parcel to be assigned to this staff member first."
+          },
+          "response": []
+        },
+        {
+          "name": "Illegal transition (must be 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 INVALID_STATUS_TRANSITION', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().error.code).to.eql('INVALID_STATUS_TRANSITION');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PICKED_UP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parcels/{{parcelId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels", "{{parcelId}}", "status"]
+            },
+            "description": "Run this after the parcel reaches DELIVERED. The brief's own example: Delivered back to Picked Up. The response names the current status and lists what would have been legal."
+          },
+          "response": []
+        },
+        {
+          "name": "Customer advancing status (must be 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 FORBIDDEN', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PICKED_UP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parcels/{{parcelId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["parcels", "{{parcelId}}", "status"]
+            },
+            "description": "403, not 404. The caller is known, this endpoint is simply not for their role. Compare with the record-level case, which is a 404."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Statistics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stats"]
+            },
+            "description": "Counts, groupings and one aggregate, all computed in the database. byStatus and byRole always contain every key, including zeros."
+          },
+          "response": []
+        },
+        {
+          "name": "List users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.success && d.data.length) {",
+                  "  pm.collectionVariables.set('userId', d.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "role", "value": "DELIVERY_STAFF", "disabled": true },
+                { "key": "search", "value": "rahim", "disabled": true }
+              ]
+            },
+            "description": "Stores the first result in {{userId}}. Passwords are never selected, so no hash can appear here."
+          },
+          "response": []
+        },
+        {
+          "name": "Change a user's role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"DELIVERY_STAFF\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "role"]
+            },
+            "description": "An admin cannot change their own role. Demoting a staff member releases their undelivered parcels in the same transaction, and the response reports how many."
+          },
+          "response": []
+        },
+        {
+          "name": "Customer reaching admin stats (must be 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 FORBIDDEN', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stats"]
+            },
+            "description": "Every /admin route is guarded once at the router, so a route added later cannot be left unprotected by accident."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
