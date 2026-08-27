@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: parcelflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: parcelflow
+      POSTGRES_PASSWORD: parcelflow
+      POSTGRES_DB: parcelflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - parcelflow_pgdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parcelflow -d parcelflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Shared store for rate-limit counters. Optional: the API falls back to an
+  # in-memory limiter when REDIS_URL is unset, which is correct for a single
+  # instance. Counters are disposable, so this service needs no volume.
+  redis:
+    image: redis:7-alpine
+    container_name: parcelflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  parcelflow_pgdata:
