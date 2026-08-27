@@ -8,8 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "start": "node src/server.js",
+  "dev": "node --watch --env-file=.env src/server.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
