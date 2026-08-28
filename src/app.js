@@ -54,7 +54,15 @@ export function createApp() {
       return sendError(res, 503, { code: 'DATABASE_UNAVAILABLE', message: 'Database is not reachable', requestId: req.id });
     }
   });
-
+  // TEMPORARY — remove after reading the proxy chain
+  app.get('/debug/ip', (req, res) =>
+    sendSuccess(res, 200, {
+      ip: req.ip,
+      ips: req.ips,
+      xff: req.get('x-forwarded-for'),
+      cf: req.get('cf-connecting-ip'),
+    }),
+  );
   // --- feature modules -------------------------------------------------------
   app.use('/auth', authRouter);
   app.use('/parcels', parcelsRouter);
