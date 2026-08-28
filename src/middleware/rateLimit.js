@@ -2,17 +2,18 @@ import { rateLimit } from 'express-rate-limit';
 import { env, isTest } from '../config/env.js';
 import { sendError } from '../utils/response.js';
 
-function makeLimiter({ windowMs, max, code, message, store }) {
-  return rateLimit({
-    windowMs,
-    limit: max,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    skip: () => isTest, // the suite fires hundreds of requests from one IP
-    store,
-    handler: (req, res) => sendError(res, 429, { code, message, requestId: req.id }),
-  });
-}
+  function makeLimiter({ windowMs, max, code, message, store }) {
+    return rateLimit({
+      windowMs,
+      limit: max,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+    passOnStoreError: true, // store unreachable → allow the request, never 500
+      skip: () => isTest, // the suite fires hundreds of requests from one IP
+      store,
+     handler: (req, res) => sendError(res, 429, { code, message, requestId: req.id }),
+    });
+  }
 
 // In-memory counters are fine for one instance. Redis makes the count shared
 // across several. Both packages are optional and not installed by default, so
