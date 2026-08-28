@@ -23,7 +23,7 @@ export function createApp() {
   app.disable('x-powered-by');
   // Behind a proxy the real client IP is in X-Forwarded-For. Trusting exactly
   // one hop keeps rate limiting accurate without trusting arbitrary headers.
-  app.set('trust proxy', isProduction ? 1 : false);
+  app.set('trust proxy', isProduction ? 3 : false);
 
   app.use(requestId); // first, so every later failure can carry the id
   app.use(helmet());
@@ -54,15 +54,7 @@ export function createApp() {
       return sendError(res, 503, { code: 'DATABASE_UNAVAILABLE', message: 'Database is not reachable', requestId: req.id });
     }
   });
-  // TEMPORARY — remove after reading the proxy chain
-  app.get('/debug/ip', (req, res) =>
-    sendSuccess(res, 200, {
-      ip: req.ip,
-      ips: req.ips,
-      xff: req.get('x-forwarded-for'),
-      cf: req.get('cf-connecting-ip'),
-    }),
-  );
+
   // --- feature modules -------------------------------------------------------
   app.use('/auth', authRouter);
   app.use('/parcels', parcelsRouter);
