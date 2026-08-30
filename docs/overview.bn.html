@@ -127,6 +127,18 @@
   }
   .wb-v { font-size: 1rem; font-weight: 600; color: var(--ink); line-height: 1.35; display: block; }
   .wb-v small { display: block; font-weight: 400; font-size: .8rem; color: var(--ink-2); line-height: 1.5; }
+  /* source repositories — same waybill chassis, wider cells to fit a URL */
+  .repos { margin-top: .9rem; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+  .repo-link {
+    display: block; text-decoration: none; color: var(--accent);
+    font-size: 1rem; font-weight: 600; line-height: 1.35;
+  }
+  .repo-link:hover { color: var(--accent-2); text-decoration: underline; }
+  .repo-link small {
+    display: block; margin-top: .15rem; font-family: var(--font-mono);
+    font-size: .73rem; font-weight: 400; color: var(--ink-2);
+    line-height: 1.6; word-break: break-all;
+  }
 
   /* ── sections ─────────────────────────────────────────────────────────── */
   section { padding-top: var(--gap); scroll-margin-top: 1.5rem; }
@@ -307,6 +319,17 @@
     <div class="wb-cell"><span class="wb-k">Status flow</span><span class="wb-v">৫ ধাপ<small>৪টি বৈধ transition</small></span></div>
     <div class="wb-cell"><span class="wb-k">Deployment</span><span class="wb-v">Render<small>Neon · Upstash</small></span></div>
   </div>
+
+  <div class="waybill repos">
+    <div class="wb-cell">
+      <span class="wb-k">Backend repo</span>
+      <a class="repo-link" href="https://github.com/ALPHAMAN-0/ParcelFlowApi">ALPHAMAN-0/ParcelFlowApi<small>https://github.com/ALPHAMAN-0/ParcelFlowApi.git</small></a>
+    </div>
+    <div class="wb-cell">
+      <span class="wb-k">Frontend repo</span>
+      <a class="repo-link" href="https://github.com/ALPHAMAN-0/parcelFlow_Frontend">ALPHAMAN-0/parcelFlow_Frontend<small>https://github.com/ALPHAMAN-0/parcelFlow_Frontend.git</small></a>
+    </div>
+  </div>
 </header>
 
 <!-- ══ ০১ পরিচিতি ═══════════════════════════════════════════════════════ -->
@@ -330,8 +353,9 @@
       সরবরাহ করা।
     </p>
     <p>
-      এটি সচেতনভাবে একটি backend-only প্রকল্প। এতে কোনো user interface নেই, email বা SMS পাঠানোর
-      ব্যবস্থা নেই, payment handling নেই, এবং GPS tracking নেই। এটি একটি নির্দিষ্ট linear delivery
+      এই repository-টি সচেতনভাবে backend-only। এখানে কোনো user interface নেই — সেটি আলাদা একটি
+      frontend repository-তে রাখা হয়েছে — email বা SMS পাঠানোর ব্যবস্থা নেই, payment handling
+      নেই, এবং GPS tracking নেই। এটি একটি নির্দিষ্ট linear delivery
       pipeline-কে মডেল করে এবং সেই pipeline-এর প্রতিটি পদক্ষেপের নির্ভুল হিসাব রাখে।
     </p>
     <div class="note">
