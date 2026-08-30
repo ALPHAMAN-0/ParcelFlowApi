@@ -1,0 +1,78 @@
+%% ParcelFlow API — one request, end to end
+%% PATCH /parcels/:id/status is the richest path in the codebase: it touches
+%% authentication, both authorization layers, domain rules, optimistic
+%% concurrency and the audit trail.
+sequenceDiagram
+    autonumber
+    actor Staff as Delivery staff
+    participant Pipe as Global pipeline
+    participant Auth as authenticate
+    participant Role as authorize
+    participant Val as validate
+    participant Ctl as parcels.controller
+    participant Svc as parcels.service
+    participant Dom as domain/parcelStatus
+    participant DB as PostgreSQL
+    participant Err as errorHandler
+
+    Staff->>Pipe: PATCH /parcels/:id/status<br/>Authorization: Bearer …<br/>{ "status": "IN_TRANSIT" }
+    Pipe->>Pipe: req.id = uuid, set X-Request-Id header
+    Pipe->>Auth: continue
+
+    Auth->>Auth: split header, verify HS256 + issuer
+    alt token missing, malformed, expired or invalid
+        Auth-->>Err: AppError 401 TOKEN_*
+        Err-->>Staff: 401 { success:false, error:{ code, requestId } }
+    end
+    Auth->>DB: SELECT id,name,email,role,createdAt FROM users WHERE id = sub
+    DB-->>Auth: user row (password hash never selected)
+    Note over Auth: read on every request, so a demotion<br/>or deletion takes effect immediately
+    Auth->>Role: req.user attached
+
+    alt role not in (DELIVERY_STAFF, ADMIN)
+        Role-->>Err: AppError 403 FORBIDDEN
+        Err-->>Staff: 403
+    end
+    Role->>Val: continue
+
+    Val->>Val: idParamsSchema + updateStatusSchema
+    alt schema fails
+        Val-->>Err: AppError 422 VALIDATION_ERROR + per-field details
+        Err-->>Staff: 422
+    end
+    Val->>Ctl: req.validated = { params, body }
+
+    Ctl->>Svc: updateStatus(id, nextStatus, user)
+    Svc->>Svc: scope = scopeFor(user)
+    Note over Svc: DELIVERY_STAFF → { assignedStaffId: user.id }<br/>ADMIN → { }
+    Svc->>DB: SELECT id,status FROM parcels WHERE id = ? AND <scope>
+    alt no row — absent, or outside this caller's scope
+        Svc-->>Err: AppError 404 PARCEL_NOT_FOUND
+        Err-->>Staff: 404 (never 403 — that would confirm it exists)
+    end
+    DB-->>Svc: { status: "PICKED_UP" }
+
+    Svc->>Dom: explainTransition("PICKED_UP", "IN_TRANSIT")
+    alt move is not one of the four legal ones
+        Dom-->>Svc: { ok:false, reason }
+        Svc-->>Err: 409 INVALID_STATUS_TRANSITION + allowedNext
+        Err-->>Staff: 409
+    end
+    Dom-->>Svc: { ok: true }
+
+    rect rgb(238, 247, 238)
+        Note over Svc,DB: single transaction
+        Svc->>DB: UPDATE parcels SET status=? WHERE id=? AND status='PICKED_UP' AND <scope>
+        alt zero rows matched — someone else moved it first
+            DB-->>Svc: count = 0
+            Svc-->>Err: throw → ROLLBACK → 409 STATUS_CONFLICT
+            Err-->>Staff: 409
+        end
+        DB-->>Svc: count = 1
+        Svc->>DB: INSERT parcel_status_history (oldStatus, newStatus, changedById)
+        Svc->>DB: SELECT the updated parcel with its relations
+    end
+
+    Svc-->>Ctl: parcel
+    Ctl-->>Staff: 200 { success:true, data:{ … } }
+    Note over Pipe: res.on('finish') writes one JSON log line<br/>carrying requestId, status and duration

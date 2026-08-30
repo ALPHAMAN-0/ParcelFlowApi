@@ -1,0 +1,38 @@
+%% ParcelFlow API — deployment topology
+%% Render (single web service) → Neon PostgreSQL → Upstash Redis.
+%% Nothing proxies in front of Render; there is no CDN or WAF layer.
+flowchart TB
+    User["Client<br/><small>curl · Postman · frontend</small>"]
+
+    subgraph render["Render — web service"]
+        direction TB
+        Node["Node 22.18.0<br/><small>pinned in .node-version</small>"]
+        App["node src/server.js<br/><small>binds process.env.PORT</small>"]
+        Node --> App
+        Health["GET /health — shallow, never touches the DB<br/>GET /health/db — deep, 503 when unreachable"]
+        App --- Health
+    end
+
+    subgraph neon["Neon — PostgreSQL 16, ap-southeast-1"]
+        direction TB
+        Pooled[("Pooled endpoint<br/><small>…-pooler · pgbouncer=true<br/>connection_limit=1</small>")]
+        Direct[("Direct endpoint<br/><small>no pooler</small>")]
+    end
+
+    Upstash[("Upstash Redis<br/><small>rediss:// TLS<br/>rate-limit counters</small>")]
+
+    Build["Build step<br/><small>prisma generate<br/>binaryTargets: native + debian-openssl-3.0.x</small>"]
+
+    User -- "HTTPS" --> render
+    App -- "DATABASE_URL — every runtime query" --> Pooled
+    App -. "REDIS_URL — optional;<br/>unset falls back to an in-memory store" .-> Upstash
+    Build -- "DIRECT_URL — migrations only<br/><small>DDL cannot run through a transaction pooler</small>" --> Direct
+    Build --> Node
+
+    Env["Configuration<br/><small>injected by the platform in production;<br/>.env is read only outside production and is gitignored.<br/>Validated by Zod at boot — a bad value exits(1) before listen()</small>"]
+    Env -.-> App
+
+    classDef store fill:#e8f0fe,stroke:#4a6fa5,stroke-width:2px
+    classDef cfg fill:#fffbe6,stroke:#d4b106,stroke-dasharray:3 3
+    class Pooled,Direct,Upstash store
+    class Env cfg

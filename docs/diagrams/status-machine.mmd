@@ -1,0 +1,34 @@
+%% ParcelFlow API — parcel status state machine
+%% Source of truth: src/domain/parcelStatus.js (TRANSITIONS)
+%% Four legal moves out of 25 possible ordered pairs. Same-to-same is rejected too,
+%% because it would write a meaningless row into the audit trail.
+stateDiagram-v2
+    direction LR
+    [*] --> PENDING : POST /parcels<br/>customer or admin
+
+    PENDING --> PICKED_UP : PATCH /parcels/:id/status
+    PICKED_UP --> IN_TRANSIT : PATCH /parcels/:id/status
+    IN_TRANSIT --> OUT_FOR_DELIVERY : PATCH /parcels/:id/status
+    OUT_FOR_DELIVERY --> DELIVERED : PATCH /parcels/:id/status
+    DELIVERED --> [*]
+
+    note right of PENDING
+        The creation record is the only
+        history row with oldStatus = null.
+    end note
+
+    note right of DELIVERED
+        Terminal. nextStatuses() returns [],
+        so every move out of it is a
+        409 INVALID_STATUS_TRANSITION
+        with allowedNext: [].
+        A delivered parcel also cannot
+        be reassigned.
+    end note
+
+    note left of IN_TRANSIT
+        Every move is written by
+        DELIVERY_STAFF (their own parcels)
+        or ADMIN (any parcel).
+        Customers can never advance a status.
+    end note

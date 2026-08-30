@@ -1,0 +1,49 @@
+%% ParcelFlow API — system architecture
+%% Source of truth: src/app.js (global pipeline) and src/modules/*/*.routes.js (per-route chains)
+flowchart LR
+    Client["HTTP client<br/><small>curl · Postman · frontend</small>"]
+
+    Global["<b>Global pipeline</b> — src/app.js<br/><small>requestId → helmet → cors<br/>→ express.json 100kb → requestLogger</small>"]
+
+    subgraph route["Per-route chain — spelled out in each *.routes.js"]
+        direction TB
+        R1["rateLimit<br/><small>login · tracking only</small>"]
+        R2["authenticate<br/><small>Bearer → req.user</small>"]
+        R3["authorize(roles)<br/><small>may this ROLE call this?</small>"]
+        R4["validate(zod)<br/><small>→ req.validated</small>"]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    Ctrl["Controller<br/><small>reads req.validated,<br/>picks the status code</small>"]
+    Svc["Service<br/><small>business rules · scopeFor()<br/>transactions</small>"]
+    Domain["Domain — parcelStatus.js<br/><small>transition table<br/>imports nothing</small>"]
+    Prisma["Prisma Client<br/><small>one per process</small>"]
+    PG[("PostgreSQL 16<br/><small>users · parcels<br/>parcel_status_history</small>")]
+    Redis[("Redis<br/><small>counters · optional</small>")]
+    Tail["notFound → errorHandler<br/><small>the only place an error<br/>becomes a response</small>"]
+    Logs[/"stdout / stderr<br/><small>JSON lines</small>"/]
+
+    Client --> Global --> R1
+    R4 --> Ctrl --> Svc
+    Svc --> Domain
+    Svc --> Prisma --> PG
+    R1 -. "when REDIS_URL is set" .-> Redis
+
+    R2 -. "401" .-> Tail
+    R3 -. "403" .-> Tail
+    R4 -. "422" .-> Tail
+    Svc -. "throws AppError<br/>404 · 409 · 422" .-> Tail
+
+    Ctrl == "2xx" ==> Client
+    Tail == "4xx / 5xx" ==> Client
+    Global --> Logs
+    Tail --> Logs
+
+    classDef store fill:#e8f0fe,stroke:#4a6fa5,stroke-width:2px
+    classDef sink fill:#f5f5f5,stroke:#999,stroke-dasharray:3 3
+    classDef pure fill:#eef7ee,stroke:#5a8c5a,stroke-width:2px
+    classDef fail fill:#fdecea,stroke:#c0392b,stroke-width:2px
+    class PG,Redis store
+    class Logs sink
+    class Domain pure
+    class Tail fail

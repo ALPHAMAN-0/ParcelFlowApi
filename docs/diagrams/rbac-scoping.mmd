@@ -1,0 +1,35 @@
+%% ParcelFlow API — two authorization layers (ADR-009)
+%% "May this role call this endpoint?" and "which records may this caller see?"
+%% are different questions, answered in different places, with different status codes.
+flowchart TB
+    Req["Authenticated request<br/><small>req.user is set</small>"]
+
+    Q1{"Layer 1 — authorize(...roles)<br/>middleware<br/><small>may this ROLE call this ENDPOINT?</small>"}
+    Req --> Q1
+    Q1 -- "no" --> F403["403 FORBIDDEN<br/><small>You are known. This endpoint is not for you.<br/>Saying so leaks nothing: the route list is public.</small>"]
+    Q1 -- "yes" --> Q2
+
+    Q2{"Layer 2 — scopeFor(user)<br/>inside the service<br/><small>which RECORDS may this CALLER see?</small>"}
+
+    subgraph scope["scopeFor() — spread into the WHERE clause of every read"]
+        direction TB
+        SC["CUSTOMER → { customerId: user.id }"]
+        SS["DELIVERY_STAFF → { assignedStaffId: user.id }"]
+        SA["ADMIN → { }"]
+        SU["unknown role → { id: { in: [] } }<br/><small>matches nothing — fail closed</small>"]
+    end
+
+    Q2 --> scope
+    scope --> DB[("SELECT … WHERE id = ? AND &lt;scope&gt;")]
+    DB -- "row returned" --> OK["200 — the record"]
+    DB -- "zero rows" --> F404["404 PARCEL_NOT_FOUND<br/><small>Absent and not-yours are indistinguishable.<br/>A 403 here would confirm the parcel exists.</small>"]
+
+    note1["There is no post-fetch ownership check anywhere.<br/>A row outside the caller's scope never leaves the database."]
+    scope -.-> note1
+
+    classDef deny fill:#fdecea,stroke:#c0392b,stroke-width:2px
+    classDef allow fill:#eef7ee,stroke:#5a8c5a,stroke-width:2px
+    classDef note fill:#fffbe6,stroke:#d4b106,stroke-dasharray:3 3
+    class F403,F404 deny
+    class OK allow
+    class note1 note

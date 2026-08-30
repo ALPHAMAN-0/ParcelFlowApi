@@ -1,0 +1,1318 @@
+<title>ParcelFlow API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@500;600;700&family=Hind+Siliguri:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  /* ── tokens ─────────────────────────────────────────────────────────────
+     Light palette on bare :root. Dark redefines ONLY these values, twice:
+     once for prefers-color-scheme, once for the explicit stamp.          */
+  :root {
+    --bg:          #F2F5F4;
+    --surface:     #FFFFFF;
+    --surface-2:   #E9EEEC;
+    --ink:         #101E21;
+    --ink-2:       #536668;
+    --ink-3:       #67797A;
+    --rule:        #D5DEDB;
+    --rule-strong: #B6C4C1;
+    --dg-stroke:   #7E918E;
+    --accent:      #0C6360;
+    --accent-2:    #0A4F4C;
+    --accent-soft: #D5E9E6;
+    --signal:      #A8500B;
+    --signal-soft: #F8E6D4;
+    --shadow:      0 1px 2px rgba(16,30,33,.05), 0 8px 24px -12px rgba(16,30,33,.14);
+
+    --font-display: "Noto Serif Bengali", "Hind Siliguri", Georgia, serif;
+    --font-body:    "Hind Siliguri", "Noto Sans Bengali", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono:    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --measure: 66ch;
+    --pad:     clamp(1.1rem, 4vw, 2.6rem);
+    --gap:     clamp(2.6rem, 6vw, 4.4rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:          #0B1416;
+      --surface:     #121E20;
+      --surface-2:   #182629;
+      --ink:         #E4EDEB;
+      --ink-2:       #97ABAA;
+      --ink-3:       #7B9092;
+      --rule:        #223336;
+      --rule-strong: #33474A;
+      --dg-stroke:   #5C7377;
+      --accent:      #52C6BD;
+      --accent-2:    #7BD8D0;
+      --accent-soft: #12312F;
+      --signal:      #E4964C;
+      --signal-soft: #33210E;
+      --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+
+    --bg:          #0B1416;
+    --surface:     #121E20;
+    --surface-2:   #182629;
+    --ink:         #E4EDEB;
+    --ink-2:       #97ABAA;
+    --ink-3:       #7B9092;
+    --rule:        #223336;
+    --rule-strong: #33474A;
+    --dg-stroke:   #5C7377;
+    --accent:      #52C6BD;
+    --accent-2:    #7BD8D0;
+    --accent-soft: #12312F;
+    --signal:      #E4964C;
+    --signal-soft: #33210E;
+    --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  /* ── base ─────────────────────────────────────────────────────────────── */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    font-weight: 400;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+  a { color: var(--accent); text-underline-offset: .18em; text-decoration-thickness: 1px; }
+  a:hover { color: var(--accent-2); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  code, kbd, samp { font-family: var(--font-mono); font-size: .84em; }
+  p code, li code, td code {
+    background: var(--surface-2); border: 1px solid var(--rule);
+    border-radius: 3px; padding: .08em .32em; color: var(--ink);
+  }
+
+  /* ── shell ────────────────────────────────────────────────────────────── */
+  .shell { max-width: 1180px; margin: 0 auto; padding: 0 var(--pad) 6rem; }
+  .col   { max-width: var(--measure); }
+
+  /* ── waybill hero ─────────────────────────────────────────────────────── */
+  .hero { padding: clamp(3rem, 8vw, 5.5rem) 0 clamp(2rem, 5vw, 3rem); }
+  .hero-eyebrow {
+    font-family: var(--font-mono); font-size: .74rem; font-weight: 500;
+    letter-spacing: .18em; color: var(--ink-3); text-transform: uppercase;
+    display: flex; align-items: center; gap: .8rem; margin-bottom: 1.4rem;
+  }
+  .hero-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  .hero h1 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(2.4rem, 7vw, 4rem); line-height: 1.15; letter-spacing: -.015em;
+    margin: 0 0 1rem; text-wrap: balance;
+  }
+  .hero .lede {
+    font-size: clamp(1.08rem, 2.2vw, 1.28rem); color: var(--ink-2);
+    max-width: 56ch; margin: 0 0 2.4rem; line-height: 1.75;
+  }
+  /* the label strip — the one flourish, borrowed from a courier waybill */
+  .waybill {
+    border: 1px solid var(--rule-strong); border-radius: 6px;
+    background: var(--surface); box-shadow: var(--shadow);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    overflow: hidden;
+  }
+  .wb-cell { padding: .95rem 1.15rem; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .wb-cell:last-child { border-right: none; }
+  .wb-k {
+    font-family: var(--font-mono); font-size: .66rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: .3rem;
+  }
+  .wb-v { font-size: 1rem; font-weight: 600; color: var(--ink); line-height: 1.35; display: block; }
+  .wb-v small { display: block; font-weight: 400; font-size: .8rem; color: var(--ink-2); line-height: 1.5; }
+
+  /* ── sections ─────────────────────────────────────────────────────────── */
+  section { padding-top: var(--gap); scroll-margin-top: 1.5rem; }
+  .sec-head { margin-bottom: 1.8rem; }
+  .sec-num {
+    font-family: var(--font-mono); font-size: .78rem; font-weight: 700;
+    letter-spacing: .1em; color: var(--accent);
+    display: flex; align-items: center; gap: .75rem; margin-bottom: .55rem;
+  }
+  .sec-num::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  h2 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(1.55rem, 3.4vw, 2.15rem); line-height: 1.3;
+    letter-spacing: -.01em; margin: 0; text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--font-body); font-weight: 600; font-size: 1.14rem;
+    line-height: 1.5; margin: 2.2rem 0 .7rem; color: var(--ink);
+  }
+  h4 {
+    font-family: var(--font-mono); font-weight: 500; font-size: .76rem;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+    margin: 2rem 0 .8rem;
+  }
+  p { margin: 0 0 1.1rem; }
+  .col > p, .col > ul, .col > ol { max-width: var(--measure); }
+
+  /* ── manifest table ───────────────────────────────────────────────────── */
+  .tw { overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; line-height: 1.65; }
+  th, td { text-align: left; padding: .72rem .95rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th {
+    font-family: var(--font-mono); font-size: .68rem; font-weight: 700;
+    letter-spacing: .11em; text-transform: uppercase; color: var(--ink-3);
+    background: var(--surface-2); border-bottom: 1px solid var(--rule-strong); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.mono, th.mono { font-family: var(--font-mono); font-size: .82rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* ── stamps & chips ───────────────────────────────────────────────────── */
+  .stamp {
+    display: inline-block; font-family: var(--font-mono); font-size: .68rem;
+    font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    padding: .2rem .5rem; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap;
+  }
+  .stamp.a { color: var(--accent); background: var(--accent-soft); }
+  .stamp.w { color: var(--signal); background: var(--signal-soft); }
+  .stamp.n { color: var(--ink-3); background: var(--surface-2); }
+
+  /* ── feature grid ─────────────────────────────────────────────────────── */
+  .fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin: 1.5rem 0; }
+  .fcard { background: var(--surface); padding: 1.25rem 1.35rem; }
+  .fcard h5 { margin: 0 0 .35rem; font-size: 1rem; font-weight: 600; font-family: var(--font-body); color: var(--ink); line-height: 1.5; }
+  .fcard p { margin: 0; font-size: .9rem; color: var(--ink-2); line-height: 1.7; }
+  .fcard .tag { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: .5rem; }
+
+  /* ── figures ──────────────────────────────────────────────────────────── */
+  figure { margin: 2rem 0; }
+  .fig-frame { border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); padding: 1.4rem 1.2rem 1rem; overflow-x: auto; }
+  figcaption { font-size: .87rem; color: var(--ink-2); margin-top: .85rem; line-height: 1.65; }
+  figcaption b { color: var(--ink); font-weight: 600; }
+  svg.dg { display: block; width: 100%; height: auto; min-width: 540px; }
+
+  /* diagram primitives — every colour comes from a token, so both themes work */
+  .dg-box   { fill: var(--surface);     stroke: var(--dg-stroke); stroke-width: 1.4; }
+  .dg-box-a { fill: var(--accent-soft); stroke: var(--accent);      stroke-width: 1.4; }
+  .dg-box-w { fill: var(--signal-soft); stroke: var(--signal);      stroke-width: 1.4; }
+  .dg-box-q { fill: var(--surface-2);   stroke: var(--dg-stroke); stroke-width: 1.4; }
+  .dg-t  { fill: var(--ink);   font-family: var(--font-body); font-size: 13px; font-weight: 600; }
+  .dg-s  { fill: var(--ink-2); font-family: var(--font-body); font-size: 11px; font-weight: 400; }
+  .dg-m  { fill: var(--ink-2); font-family: var(--font-mono); font-size: 10.5px; }
+  .dg-ma { fill: var(--accent); font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; }
+  .dg-mw { fill: var(--signal); font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; }
+  .dg-l  { stroke: var(--dg-stroke); stroke-width: 1.4; fill: none; }
+  .dg-a  { stroke: var(--dg-stroke); stroke-width: 1.4; fill: none; marker-end: url(#arw); }
+  .dg-aw { stroke: var(--signal); stroke-width: 1.4; fill: none; marker-end: url(#arww); stroke-dasharray: 4 3; }
+  .dg-ac { stroke: var(--accent); stroke-width: 1.6; fill: none; marker-end: url(#arwa); }
+  .dg-hd { fill: var(--surface-2); stroke: var(--rule); stroke-width: 1; }
+
+  /* ── callout ──────────────────────────────────────────────────────────── */
+  .note {
+    border-left: 3px solid var(--accent); background: var(--surface);
+    border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    border-radius: 0 6px 6px 0; padding: 1.05rem 1.3rem; margin: 1.6rem 0; font-size: .95rem; line-height: 1.75;
+  }
+  .note.w { border-left-color: var(--signal); }
+  .note > :last-child { margin-bottom: 0; }
+  .note .lbl { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: .35rem; }
+
+  /* input slot — the parts only the author can fill */
+  .slot {
+    border: 1.5px dashed var(--signal); border-radius: 6px; background: var(--signal-soft);
+    padding: 1.05rem 1.3rem; margin: 1.2rem 0; font-size: .95rem; line-height: 1.75;
+  }
+  .slot .lbl { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--signal); display: block; margin-bottom: .35rem; font-weight: 700; }
+  .slot p { margin: 0; color: var(--ink-2); }
+
+  /* ── problem ledger ───────────────────────────────────────────────────── */
+  .ledger { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin: 1.6rem 0; }
+  .lrow { background: var(--surface); padding: 1.15rem 1.35rem; display: grid; grid-template-columns: 2.2rem 1fr; gap: 0 1rem; }
+  .lrow .n { font-family: var(--font-mono); font-size: .78rem; font-weight: 700; color: var(--ink-3); padding-top: .28rem; font-variant-numeric: tabular-nums; }
+  .lrow h5 { margin: 0 0 .45rem; font-size: 1rem; font-weight: 600; font-family: var(--font-body); line-height: 1.55; color: var(--ink); }
+  .lrow .fix { margin: 0; font-size: .93rem; color: var(--ink-2); line-height: 1.75; }
+  .lrow .fix b { color: var(--ink); font-weight: 600; }
+  .lrow .src { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-3); margin-top: .5rem; display: block; }
+
+  /* ── steps ────────────────────────────────────────────────────────────── */
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 1.4rem 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding-left: 2.6rem; margin-bottom: 1rem; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: .12rem;
+    font-family: var(--font-mono); font-size: .72rem; font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    width: 1.7rem; height: 1.7rem; border-radius: 50%; display: grid; place-items: center;
+  }
+  ul.tick { list-style: none; padding: 0; margin: 1.2rem 0; }
+  ul.tick li { position: relative; padding-left: 1.5rem; margin-bottom: .55rem; }
+  ul.tick li::before { content: "→"; position: absolute; left: 0; color: var(--accent); font-family: var(--font-mono); font-size: .85rem; }
+
+  /* ── footer ───────────────────────────────────────────────────────────── */
+  footer { margin-top: var(--gap); padding-top: 2rem; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: .87rem; }
+  footer .fmono { font-family: var(--font-mono); font-size: .74rem; letter-spacing: .06em; }
+
+  hr.perf { border: none; border-top: 1px dashed var(--rule-strong); margin: var(--gap) 0 0; }
+
+  @media (max-width: 640px) {
+    body { font-size: 1rem; line-height: 1.8; }
+    .lrow { grid-template-columns: 1fr; gap: .4rem; }
+    .lrow .n { padding-top: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+  /* ── code blocks ──────────────────────────────────────────────────────── */
+  pre {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 1rem 1.1rem; overflow-x: auto; margin: 1.2rem 0;
+    font-family: var(--font-mono); font-size: .82rem; line-height: 1.7; color: var(--ink);
+  }
+  pre code { background: none; border: none; padding: 0; font-size: inherit; color: inherit; }
+  pre .k { color: var(--accent); }
+  pre .c { color: var(--ink-3); }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem; margin: 1.4rem 0; }
+  .two pre { margin: 0; height: 100%; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="arw"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--dg-stroke)"></path>
+    </marker>
+    <marker id="arwa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+    </marker>
+    <marker id="arww" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--signal)"></path>
+    </marker>
+  </defs>
+</svg>
+
+<div class="shell">
+
+<header class="hero">
+  <div class="hero-eyebrow">প্রকল্প নথি · Backend REST API</div>
+  <h1>ParcelFlow API</h1>
+  <p class="lede">
+    একটি কুরিয়ার প্রতিষ্ঠানের পুরো ডেলিভারি প্রক্রিয়া — বুকিং থেকে হাতে পৌঁছানো পর্যন্ত —
+    JSON REST API হিসেবে। প্রতিটি স্ট্যাটাস পরিবর্তন একটি append-only history টেবিলে
+    স্থায়ীভাবে লেখা হয়, যাতে কোন পার্সেল কখন কার হাতে ছিল তা কখনো হারিয়ে না যায়।
+  </p>
+
+  <div class="waybill">
+    <div class="wb-cell"><span class="wb-k">Stack</span><span class="wb-v">Node 22 · Express 5<small>PostgreSQL 16 · Prisma 6</small></span></div>
+    <div class="wb-cell"><span class="wb-k">Endpoints</span><span class="wb-v">১৫টি<small>GET · POST · PATCH</small></span></div>
+    <div class="wb-cell"><span class="wb-k">Data model</span><span class="wb-v">৩ টেবিল<small>২ enum · ৭ index</small></span></div>
+    <div class="wb-cell"><span class="wb-k">Roles</span><span class="wb-v">৩ ধরনের<small>Customer · Staff · Admin</small></span></div>
+    <div class="wb-cell"><span class="wb-k">Status flow</span><span class="wb-v">৫ ধাপ<small>৪টি বৈধ transition</small></span></div>
+    <div class="wb-cell"><span class="wb-k">Deployment</span><span class="wb-v">Render<small>Neon · Upstash</small></span></div>
+  </div>
+</header>
+
+<!-- ══ ০১ পরিচিতি ═══════════════════════════════════════════════════════ -->
+<section id="s1">
+  <div class="sec-head">
+    <div class="sec-num">০১ / OVERVIEW</div>
+    <h2>প্রকল্প পরিচিতি</h2>
+  </div>
+  <div class="col">
+    <p>
+      <b>ParcelFlow</b> একটি parcel delivery management REST API। কুরিয়ার প্রতিষ্ঠানের দৈনন্দিন
+      কাজগুলো — পার্সেল বুক করা, ডেলিভারি স্টাফ assign করা, পার্সেলের অবস্থা ধাপে ধাপে এগিয়ে
+      নেওয়া, এবং প্রতিটি পরিবর্তনের স্থায়ী রেকর্ড রাখা — এই পুরো প্রক্রিয়াটিকে একটি JSON API
+      হিসেবে তৈরি করা হয়েছে।
+    </p>
+    <p>
+      তিন ধরনের ব্যবহারকারী একই ডেটা থেকে ভিন্ন ভিন্ন জিনিস চান। একজন <b>customer</b> পার্সেল বুক
+      করেন এবং জানতে চান সেটি এখন কোথায়। একজন <b>delivery staff</b> পার্সেলটি বহন করেন এবং কী
+      ঘটল তা রেকর্ড করেন। একজন <b>admin</b> পুরো কার্যক্রম পরিচালনা করেন, কাজ বণ্টন করেন এবং
+      পরিসংখ্যান দেখেন। API-এর মূল কাজ হলো একই ডেটার উপর এই তিনটি ভিন্ন দৃষ্টিভঙ্গি নিরাপদে
+      সরবরাহ করা।
+    </p>
+    <p>
+      এটি সচেতনভাবে একটি backend-only প্রকল্প। এতে কোনো user interface নেই, email বা SMS পাঠানোর
+      ব্যবস্থা নেই, payment handling নেই, এবং GPS tracking নেই। এটি একটি নির্দিষ্ট linear delivery
+      pipeline-কে মডেল করে এবং সেই pipeline-এর প্রতিটি পদক্ষেপের নির্ভুল হিসাব রাখে।
+    </p>
+    <div class="note">
+      <span class="lbl">যে নীতি পুরো প্রকল্পকে আকার দিয়েছে</span>
+      <p>
+        <b>পার্সেলের ইতিহাস অবশ্যই নির্ভরযোগ্য হতে হবে।</b> এমন যেকোনো কিছু যা একটি ভুল, অনুপস্থিত
+        বা duplicate history row তৈরি করতে পারে — সেটিকে edge case হিসেবে নয়, বরং
+        <b>correctness bug</b> হিসেবে ধরা হয়েছে। নিচের প্রায় প্রতিটি design decision এই একটি
+        নীতি থেকেই এসেছে।
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ০২ সমস্যা ════════════════════════════════════════════════════════ -->
+<section id="s2">
+  <div class="sec-head">
+    <div class="sec-num">০২ / PROBLEM</div>
+    <h2>কী সমস্যার সমাধান করে</h2>
+  </div>
+  <div class="col">
+    <p>
+      ছোট ও মাঝারি কুরিয়ার প্রতিষ্ঠানে পার্সেলের হিসাব সাধারণত ফোন কল, খাতা আর spreadsheet-এ
+      রাখা হয়। এই পদ্ধতিতে চারটি সমস্যা বারবার ফিরে আসে:
+    </p>
+    <ul class="tick">
+      <li><b>দায়বদ্ধতা থাকে না।</b> একটি পার্সেল কখন কার হাতে ছিল, কে সেটির অবস্থা বদলেছে — এর কোনো স্থায়ী প্রমাণ থাকে না। বিরোধ হলে কারও কথার বিপরীতে কারও কথা।</li>
+      <li><b>যে কেউ যেকোনো কিছু বদলাতে পারে।</b> ভূমিকা অনুযায়ী কাজের সীমা না থাকায় একজন গ্রাহকও নিজের পার্সেলকে "delivered" দেখিয়ে দিতে পারেন।</li>
+      <li><b>ধাপ এড়িয়ে যাওয়া যায়।</b> পার্সেল pickup না হয়েই "delivered" হয়ে যেতে পারে, কারণ কোনো নিয়ম সেটিকে আটকায় না।</li>
+      <li><b>গ্রাহক অন্যের তথ্য দেখে ফেলেন।</b> একটি tracking নম্বর অনুমান করে অন্যের পার্সেলের তথ্য বের করে ফেলা যায়।</li>
+    </ul>
+    <p>
+      ParcelFlow এই চারটিকেই কাঠামোগতভাবে বন্ধ করে। প্রতিটি পরিবর্তন একই transaction-এ
+      history-তে লেখা হয়; প্রতিটি endpoint ভূমিকা যাচাই করে; status পরিবর্তন একটি নির্দিষ্ট
+      state machine মেনে চলে; এবং প্রতিটি database query-তে ownership শর্ত হিসেবে যুক্ত থাকে,
+      ফলে নিজের নয় এমন কোনো row কখনো database থেকে বেরই হয় না।
+    </p>
+  </div>
+</section>
+
+<!-- ══ ০৩ ফিচার ═════════════════════════════════════════════════════════ -->
+<section id="s3">
+  <div class="sec-head">
+    <div class="sec-num">০৩ / FEATURES</div>
+    <h2>প্রধান ফিচারসমূহ</h2>
+  </div>
+
+  <h4>Authentication ও Authorization</h4>
+  <div class="fgrid">
+    <div class="fcard">
+      <span class="tag">JWT</span>
+      <h5>Stateless token authentication</h5>
+      <p>HS256 algorithm এবং issuer দুটোই pin করা, যা <code>alg: none</code> ও algorithm-confusion আক্রমণ বন্ধ করে। Token-এর মেয়াদ configurable।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Fresh identity</span>
+      <h5>প্রতি request-এ user পুনরায় পড়া হয়</h5>
+      <p>Token-এর role claim বিশ্বাস করা হয় না। ফলে কাউকে demote বা delete করলে সেটি পরের request থেকেই কার্যকর হয়, token-এর মেয়াদ শেষ হওয়ার অপেক্ষা করতে হয় না।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">RBAC</span>
+      <h5>দুই স্তরের authorization</h5>
+      <p>"এই role কি এই endpoint ডাকতে পারে?" — middleware, উত্তর <b>403</b>। "এই caller কোন record দেখতে পারে?" — service-এর ভিতরে query scope, উত্তর <b>404</b>।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Privilege</span>
+      <h5>Register করে admin হওয়া যায় না</h5>
+      <p>দুটি স্তরে আটকানো: Zod <code>strictObject</code> অচেনা <code>role</code> key পেলে 422 দেয়, আর service-এ role সরাসরি <code>CUSTOMER</code> hard-code করা।</p>
+    </div>
+  </div>
+
+  <h4>Parcel lifecycle</h4>
+  <div class="fgrid">
+    <div class="fcard">
+      <span class="tag">State machine</span>
+      <h5>৫ ধাপের কঠোর linear flow</h5>
+      <p>২৫টি সম্ভাব্য জোড়ার মধ্যে মাত্র ৪টি বৈধ। ধাপ এড়ানো, পিছিয়ে যাওয়া বা একই status আবার সেট করা — সবই 409 দিয়ে প্রত্যাখ্যাত।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Audit trail</span>
+      <h5>Append-only history</h5>
+      <p>প্রতিটি পরিবর্তন — কে, কখন, কোথা থেকে কোথায় — একই transaction-এ লেখা হয়। কোডের কোথাও এই টেবিলে update বা delete করা হয় না।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Concurrency</span>
+      <h5>Optimistic locking</h5>
+      <p>দুজন staff একসাথে একই পার্সেল এগোলে conditional UPDATE-এ একজনের সাথে শূন্য row মেলে, transaction rollback হয় এবং তিনি 409 <code>STATUS_CONFLICT</code> পান।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Tracking</span>
+      <h5>অনুমান-অযোগ্য tracking code</h5>
+      <p><code>crypto.randomInt</code> দিয়ে তৈরি, বিভ্রান্তিকর অক্ষর (I, L, O, 0, 1) বাদ দেওয়া। Uniqueness database-এর UNIQUE constraint নিশ্চিত করে, collision হলে retry।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Query</span>
+      <h5>Filter · pagination · sort</h5>
+      <p>status, deliveryArea, pickupArea ও আংশিক trackingCode দিয়ে filter; page ও limit দিয়ে pagination; চার রকম sort — সবই index-সমর্থিত।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Assignment</span>
+      <h5>Staff assign ও release</h5>
+      <p>Admin পার্সেল assign করেন; <code>null</code> পাঠালে assignment মুছে যায়। Staff-কে demote করলে তার অসম্পূর্ণ পার্সেলগুলো একই transaction-এ মুক্ত হয়ে যায়।</p>
+    </div>
+  </div>
+
+  <h4>Admin ও analytics</h4>
+  <div class="fgrid">
+    <div class="fcard">
+      <span class="tag">Statistics</span>
+      <h5>সম্পূর্ণ database-এ গণনা করা পরিসংখ্যান</h5>
+      <p>মোট পার্সেল, status অনুযায়ী ভাগ, unassigned সংখ্যা, delivery rate, গড় ডেলিভারি সময় ও শীর্ষ এলাকা। কোনো row memory-তে এনে গোনা হয় না।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">User admin</span>
+      <h5>ব্যবহারকারী ব্যবস্থাপনা</h5>
+      <p>Role অনুযায়ী filter, নাম ও email-এ search, pagination। Role পরিবর্তন করা যায়, তবে নিজের role নয় — যাতে শেষ admin নিজেকে লক করে ফেলতে না পারেন।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Zero-fill</span>
+      <h5>সবসময় সম্পূর্ণ আকৃতি</h5>
+      <p><code>groupBy</code> শূন্য-সংখ্যক key বাদ দেয়, তাই প্রতিটি status ও role শূন্য দিয়ে পূরণ করা হয় — client-কে অনুপস্থিত key সামলাতে হয় না।</p>
+    </div>
+  </div>
+
+  <h4>Operations</h4>
+  <div class="fgrid">
+    <div class="fcard">
+      <span class="tag">Config</span>
+      <h5>Boot-এ environment validation</h5>
+      <p>সব variable Zod দিয়ে যাচাই হয়। ভুল থাকলে কোন variable-এ সমস্যা তা ছাপিয়ে process বন্ধ হয় — <code>undefined</code> secret দিয়ে token sign করার সুযোগই থাকে না।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Observability</span>
+      <h5>Request id ও structured log</h5>
+      <p>প্রতিটি request একটি correlation id পায়, যা <code>X-Request-Id</code> header ও প্রতিটি error body-তে থাকে। Log হয় এক লাইনের JSON।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Health</span>
+      <h5>দুই স্তরের health check</h5>
+      <p><code>/health</code> database ছোঁয় না, তাই uptime monitor বিনা খরচে যত ইচ্ছা ডাকতে পারে। <code>/health/db</code> গভীর check করে এবং অচল হলে 503 দেয়।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Rate limit</span>
+      <h5>Login ও tracking throttling</h5>
+      <p>Redis থাকলে counter সব instance-এ ভাগ হয়, না থাকলে in-memory। Login limiter validation-এর আগেই চলে, যাতে guessing loop-এ body parse করাও খরচ না হয়।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Shutdown</span>
+      <h5>Graceful shutdown</h5>
+      <p>SIGTERM পেলে নতুন connection নেওয়া বন্ধ, চলমান request শেষ, Prisma pool ছাড়া, তারপর exit — ১০ সেকেন্ডের কঠোর সময়সীমা সহ।</p>
+    </div>
+    <div class="fcard">
+      <span class="tag">Tooling</span>
+      <h5><code>npm run check</code></h5>
+      <p>এক কমান্ডে পুরো stack যাচাই: Docker, দুটি container, port, process, database, একটি সত্যিকারের login এবং একটি authenticated read। ব্যর্থ হলে পাশে সমাধানের কমান্ড দেখায়।</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ০৪ আর্কিটেকচার ═══════════════════════════════════════════════════ -->
+<section id="s4">
+  <div class="sec-head">
+    <div class="sec-num">০৪ / ARCHITECTURE</div>
+    <h2>সিস্টেম আর্কিটেকচার</h2>
+  </div>
+  <div class="col">
+    <p>
+      ছয়টি ডায়াগ্রাম, ছয়টি ভিন্ন প্রশ্নের উত্তর দেয়। প্রথমটি দেখায় কোডটি কীভাবে সাজানো,
+      দ্বিতীয়টি দেখায় একটি request-এর ভিতরে আসলে কী ঘটে, আর বাকিগুলো ডেটা, নিয়ম, অনুমতি ও
+      স্থাপনার ছবি।
+    </p>
+  </div>
+
+  <figure>
+    <div class="fig-frame">
+      <svg class="dg" viewBox="0 0 1040 330" role="img" aria-label="সিস্টেম আর্কিটেকচার ডায়াগ্রাম">
+        <!-- optional redis, above the lane -->
+        <rect class="dg-box-q" x="332" y="6" width="156" height="40" rx="5"></rect>
+        <text class="dg-s" x="410" y="24" text-anchor="middle">Redis — rate-limit counter</text>
+        <text class="dg-m" x="410" y="38" text-anchor="middle">ঐচ্ছিক · REDIS_URL</text>
+
+        <!-- main lane -->
+        <rect class="dg-box"   x="16"  y="86" width="96"  height="68" rx="5"></rect>
+        <text class="dg-t" x="64" y="112" text-anchor="middle">ক্লায়েন্ট</text>
+        <text class="dg-m" x="64" y="130" text-anchor="middle">curl</text>
+        <text class="dg-m" x="64" y="144" text-anchor="middle">Postman</text>
+
+        <rect class="dg-box"   x="144" y="86" width="156" height="68" rx="5"></rect>
+        <text class="dg-t" x="222" y="110" text-anchor="middle">গ্লোবাল pipeline</text>
+        <text class="dg-m" x="222" y="128" text-anchor="middle">requestId · helmet · cors</text>
+        <text class="dg-m" x="222" y="143" text-anchor="middle">express.json · logger</text>
+
+        <rect class="dg-box"   x="332" y="86" width="156" height="68" rx="5"></rect>
+        <text class="dg-t" x="410" y="110" text-anchor="middle">রুট guard চেইন</text>
+        <text class="dg-m" x="410" y="128" text-anchor="middle">rateLimit · authenticate</text>
+        <text class="dg-m" x="410" y="143" text-anchor="middle">authorize · validate</text>
+
+        <rect class="dg-box"   x="520" y="86" width="110" height="68" rx="5"></rect>
+        <text class="dg-t" x="575" y="112" text-anchor="middle">Controller</text>
+        <text class="dg-m" x="575" y="130" text-anchor="middle">req.validated</text>
+        <text class="dg-ma" x="575" y="145" text-anchor="middle">2xx</text>
+
+        <rect class="dg-box"   x="662" y="86" width="110" height="68" rx="5"></rect>
+        <text class="dg-t" x="717" y="112" text-anchor="middle">Service</text>
+        <text class="dg-m" x="717" y="130" text-anchor="middle">scopeFor()</text>
+        <text class="dg-m" x="717" y="145" text-anchor="middle">transaction</text>
+
+        <rect class="dg-box"   x="804" y="86" width="96"  height="68" rx="5"></rect>
+        <text class="dg-t" x="852" y="116" text-anchor="middle">Prisma</text>
+        <text class="dg-m" x="852" y="134" text-anchor="middle">এক client</text>
+
+        <rect class="dg-box-a" x="932" y="86" width="92" height="68" rx="5"></rect>
+        <text class="dg-t" x="978" y="112" text-anchor="middle">PostgreSQL</text>
+        <text class="dg-m" x="978" y="130" text-anchor="middle">১৬</text>
+        <text class="dg-m" x="978" y="145" text-anchor="middle">৩ টেবিল</text>
+
+        <!-- pure domain module -->
+        <rect class="dg-box-a" x="800" y="196" width="124" height="52" rx="5"></rect>
+        <text class="dg-t" x="862" y="218" text-anchor="middle">Domain</text>
+        <text class="dg-m" x="862" y="236" text-anchor="middle">কোনো import নেই</text>
+
+        <!-- the single error exit -->
+        <rect class="dg-box-w" x="380" y="252" width="380" height="56" rx="5"></rect>
+        <text class="dg-t" x="570" y="276" text-anchor="middle">notFound → errorHandler</text>
+        <text class="dg-s" x="570" y="294" text-anchor="middle">একমাত্র জায়গা যেখানে একটি error একটি response হয়</text>
+
+        <!-- forward arrows -->
+        <path class="dg-a" d="M112,120 L138,120"></path>
+        <path class="dg-a" d="M300,120 L326,120"></path>
+        <path class="dg-a" d="M488,120 L514,120"></path>
+        <path class="dg-a" d="M630,120 L656,120"></path>
+        <path class="dg-a" d="M772,120 L798,120"></path>
+        <path class="dg-a" d="M900,120 L926,120"></path>
+        <path class="dg-a dg-dash" style="stroke-dasharray:4 3" d="M410,86 L410,52"></path>
+        <path class="dg-ac" d="M750,154 C772,180 780,204 794,220"></path>
+
+        <!-- failure arrows into the one exit -->
+        <path class="dg-aw" d="M410,154 L410,248"></path>
+        <text class="dg-mw" x="420" y="200">401 · 403 · 422</text>
+        <path class="dg-aw" d="M690,154 L690,248"></path>
+        <text class="dg-mw" x="680" y="200" text-anchor="end">404 · 409 · 422</text>
+
+        <!-- error response back to the client -->
+        <path class="dg-aw" d="M380,280 L64,280 L64,158"></path>
+        <text class="dg-mw" x="200" y="272" text-anchor="middle">4xx / 5xx</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>ডায়াগ্রাম ১ — সিস্টেম আর্কিটেকচার।</b> অনুরোধ বাঁ থেকে ডানে চারটি স্তর পেরোয়:
+      global pipeline, রুট-নির্দিষ্ট guard চেইন, controller, service। Service শুধু দুই দিকে তাকায় —
+      নিয়মের জন্য domain module, আর ডেটার জন্য Prisma। যেকোনো স্তরে যা-ই ব্যর্থ হোক,
+      সেটি একটিমাত্র জায়গায় গিয়ে response-এ পরিণত হয়।
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-frame">
+      <svg class="dg" viewBox="0 0 720 560" role="img" aria-label="একটি request-এর সম্পূর্ণ যাত্রা">
+        <text class="dg-m" x="230" y="10" text-anchor="middle">PATCH /parcels/:id/status</text>
+
+        <!-- 1 -->
+        <circle class="dg-box-q" cx="36" cy="38" r="13"></circle><text class="dg-m" x="36" y="42" text-anchor="middle">1</text>
+        <rect class="dg-box" x="60" y="16" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="35">authenticate — Bearer token যাচাই</text>
+        <text class="dg-m" x="76" y="51">HS256 ও issuer দুটোই pin করা</text>
+        <path class="dg-aw" d="M400,38 L440,38"></path>
+        <rect class="dg-box-w" x="444" y="22" width="252" height="32" rx="4"></rect>
+        <text class="dg-mw" x="456" y="42">401 TOKEN_MISSING / TOKEN_EXPIRED</text>
+
+        <!-- 2 -->
+        <path class="dg-a" d="M230,60 L230,74"></path>
+        <circle class="dg-box-q" cx="36" cy="98" r="13"></circle><text class="dg-m" x="36" y="102" text-anchor="middle">2</text>
+        <rect class="dg-box" x="60" y="76" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="95">database থেকে user পড়া</text>
+        <text class="dg-m" x="76" y="111">প্রতি request-এ — role claim বিশ্বাস করা হয় না</text>
+        <path class="dg-aw" d="M400,98 L440,98"></path>
+        <rect class="dg-box-w" x="444" y="82" width="252" height="32" rx="4"></rect>
+        <text class="dg-mw" x="456" y="102">401 USER_NOT_FOUND</text>
+
+        <!-- 3 -->
+        <path class="dg-a" d="M230,120 L230,134"></path>
+        <circle class="dg-box-q" cx="36" cy="158" r="13"></circle><text class="dg-m" x="36" y="162" text-anchor="middle">3</text>
+        <rect class="dg-box" x="60" y="136" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="155">authorize — এই role কি ডাকতে পারে?</text>
+        <text class="dg-m" x="76" y="171">DELIVERY_STAFF অথবা ADMIN</text>
+        <path class="dg-aw" d="M400,158 L440,158"></path>
+        <rect class="dg-box-w" x="444" y="142" width="252" height="32" rx="4"></rect>
+        <text class="dg-mw" x="456" y="162">403 FORBIDDEN</text>
+
+        <!-- 4 -->
+        <path class="dg-a" d="M230,180 L230,194"></path>
+        <circle class="dg-box-q" cx="36" cy="218" r="13"></circle><text class="dg-m" x="36" y="222" text-anchor="middle">4</text>
+        <rect class="dg-box" x="60" y="196" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="215">validate — params ও body</text>
+        <text class="dg-m" x="76" y="231">ফলাফল যায় req.validated-এ</text>
+        <path class="dg-aw" d="M400,218 L440,218"></path>
+        <rect class="dg-box-w" x="444" y="202" width="252" height="32" rx="4"></rect>
+        <text class="dg-mw" x="456" y="222">422 VALIDATION_ERROR</text>
+
+        <!-- 5 -->
+        <path class="dg-a" d="M230,240 L230,254"></path>
+        <circle class="dg-box-q" cx="36" cy="278" r="13"></circle><text class="dg-m" x="36" y="282" text-anchor="middle">5</text>
+        <rect class="dg-box" x="60" y="256" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="275">scopeFor() সহ parcel পড়া</text>
+        <text class="dg-m" x="76" y="291">ownership যায় WHERE clause-এ</text>
+        <path class="dg-aw" d="M400,278 L440,278"></path>
+        <rect class="dg-box-w" x="444" y="262" width="252" height="32" rx="4"></rect>
+        <text class="dg-mw" x="456" y="282">404 — নেই, নাকি আপনার নয়</text>
+
+        <!-- 6 -->
+        <path class="dg-a" d="M230,300 L230,314"></path>
+        <circle class="dg-box-q" cx="36" cy="338" r="13"></circle><text class="dg-m" x="36" y="342" text-anchor="middle">6</text>
+        <rect class="dg-box" x="60" y="316" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="335">explainTransition — move বৈধ কি না</text>
+        <text class="dg-m" x="76" y="351">domain module, কোনো database নয়</text>
+        <path class="dg-aw" d="M400,338 L440,338"></path>
+        <rect class="dg-box-w" x="444" y="322" width="252" height="32" rx="4"></rect>
+        <text class="dg-mw" x="456" y="342">409 INVALID_STATUS_TRANSITION</text>
+
+        <!-- 7 -->
+        <path class="dg-a" d="M230,360 L230,374"></path>
+        <circle class="dg-box-q" cx="36" cy="398" r="13"></circle><text class="dg-m" x="36" y="402" text-anchor="middle">7</text>
+        <rect class="dg-box" x="60" y="376" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="395">conditional UPDATE</text>
+        <text class="dg-m" x="76" y="411">… WHERE status = একটু আগে পড়া মান</text>
+        <path class="dg-aw" d="M400,398 L440,398"></path>
+        <rect class="dg-box-w" x="444" y="382" width="252" height="32" rx="4"></rect>
+        <text class="dg-mw" x="456" y="402">409 STATUS_CONFLICT — rollback</text>
+
+        <!-- 8 -->
+        <path class="dg-ac" d="M230,420 L230,434"></path>
+        <circle class="dg-box-a" cx="36" cy="458" r="13"></circle><text class="dg-ma" x="36" y="462" text-anchor="middle">8</text>
+        <rect class="dg-box-a" x="60" y="436" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="455">একই transaction-এ history row</text>
+        <text class="dg-m" x="76" y="471">oldStatus → newStatus · কে বদলেছে</text>
+
+        <!-- 9 -->
+        <path class="dg-ac" d="M230,480 L230,494"></path>
+        <circle class="dg-box-a" cx="36" cy="518" r="13"></circle><text class="dg-ma" x="36" y="522" text-anchor="middle">9</text>
+        <rect class="dg-box-a" x="60" y="496" width="340" height="44" rx="5"></rect>
+        <text class="dg-t" x="76" y="515">200 — হালনাগাদ parcel ফেরত</text>
+        <text class="dg-m" x="76" y="531">এক লাইন JSON log, requestId সহ</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>ডায়াগ্রাম ২ — একটি request-এর সম্পূর্ণ যাত্রা।</b> <code>PATCH /parcels/:id/status</code>
+      কোডবেসের সবচেয়ে সমৃদ্ধ পথ — এটি authentication, দুই স্তরের authorization, domain নিয়ম,
+      optimistic concurrency এবং audit trail — সবগুলোকেই ছোঁয়। বাঁয়ের কলাম সফল পথ,
+      ডানের প্রতিটি বাক্স একটি ব্যর্থতার নির্দিষ্ট উত্তর।
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-frame">
+      <svg class="dg" viewBox="0 0 760 400" role="img" aria-label="দুই স্তরের অনুমতি ব্যবস্থা">
+        <rect class="dg-box" x="220" y="8" width="220" height="42" rx="5"></rect>
+        <text class="dg-t" x="330" y="26" text-anchor="middle">প্রমাণীকৃত request</text>
+        <text class="dg-m" x="330" y="42" text-anchor="middle">req.user সেট করা হয়েছে</text>
+        <path class="dg-a" d="M330,50 L330,62"></path>
+
+        <rect class="dg-box-q" x="130" y="66" width="400" height="58" rx="5"></rect>
+        <text class="dg-t" x="330" y="88" text-anchor="middle">স্তর ১ — authorize(), middleware</text>
+        <text class="dg-s" x="330" y="108" text-anchor="middle">এই ROLE কি এই ENDPOINT ডাকতে পারে?</text>
+        <path class="dg-aw" d="M530,95 L566,95"></path>
+        <rect class="dg-box-w" x="570" y="71" width="180" height="48" rx="4"></rect>
+        <text class="dg-mw" x="660" y="90" text-anchor="middle">403 FORBIDDEN</text>
+        <text class="dg-s" x="660" y="107" text-anchor="middle">আপনি পরিচিত, পথটি আপনার নয়</text>
+        <path class="dg-a" d="M330,124 L330,138"></path>
+
+        <rect class="dg-box-q" x="130" y="142" width="400" height="104" rx="5"></rect>
+        <text class="dg-t" x="330" y="164" text-anchor="middle">স্তর ২ — scopeFor(), service-এর ভিতরে</text>
+        <text class="dg-s" x="330" y="182" text-anchor="middle">এই CALLER কোন RECORD দেখতে পারে?</text>
+        <text class="dg-m" x="152" y="204">CUSTOMER</text>
+        <text class="dg-m" x="300" y="204">→ { customerId: user.id }</text>
+        <text class="dg-m" x="152" y="221">DELIVERY_STAFF</text>
+        <text class="dg-m" x="300" y="221">→ { assignedStaffId: user.id }</text>
+        <text class="dg-m" x="152" y="238">ADMIN</text>
+        <text class="dg-m" x="300" y="238">→ { }   ·   অজানা role → কিছুই নয়</text>
+        <path class="dg-a" d="M330,246 L330,260"></path>
+
+        <rect class="dg-box" x="130" y="264" width="400" height="44" rx="5"></rect>
+        <text class="dg-m" x="330" y="291" text-anchor="middle">SELECT … WHERE id = ? AND ‹scope›</text>
+
+        <path class="dg-aw" d="M170,308 L60,308 L60,334"></path>
+        <rect class="dg-box-w" x="8" y="336" width="290" height="56" rx="4"></rect>
+        <text class="dg-mw" x="153" y="356" text-anchor="middle">404 PARCEL_NOT_FOUND</text>
+        <text class="dg-s" x="153" y="374" text-anchor="middle">"নেই" আর "আপনার নয়" অভিন্ন উত্তর —</text>
+        <text class="dg-s" x="153" y="388" text-anchor="middle">403 দিলে বোঝা যেত পার্সেলটি সত্যিই আছে</text>
+
+        <path class="dg-ac" d="M490,308 L700,308 L700,334"></path>
+        <rect class="dg-box-a" x="462" y="336" width="290" height="56" rx="4"></rect>
+        <text class="dg-ma" x="607" y="360" text-anchor="middle">200 — record ফেরত</text>
+        <text class="dg-s" x="607" y="379" text-anchor="middle">scope-এর বাইরের row database ছাড়েই না</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>ডায়াগ্রাম ৩ — অনুমতির দুই স্তর।</b> "এই role কি এই endpoint ডাকতে পারে" এবং
+      "এই caller কোন record দেখতে পারে" — দুটি আলাদা প্রশ্ন, দুই জায়গায়, দুই রকম উত্তর।
+      Ownership সরাসরি <code>WHERE</code> clause-এ যায়, তাই কোথাও fetch-পরবর্তী ownership check
+      নেই — ভুলে যাওয়ারও কিছু নেই।
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-frame">
+      <svg class="dg" viewBox="0 0 800 300" role="img" aria-label="ডিপ্লয়মেন্ট টপোলজি">
+        <rect class="dg-box" x="20" y="106" width="110" height="58" rx="5"></rect>
+        <text class="dg-t" x="75" y="130" text-anchor="middle">ক্লায়েন্ট</text>
+        <text class="dg-m" x="75" y="148" text-anchor="middle">HTTPS</text>
+        <path class="dg-a" d="M130,135 L172,135"></path>
+
+        <rect class="dg-box-a" x="180" y="70" width="250" height="130" rx="5"></rect>
+        <text class="dg-t" x="305" y="98" text-anchor="middle">Render — web service</text>
+        <text class="dg-m" x="305" y="120" text-anchor="middle">node src/server.js</text>
+        <text class="dg-m" x="305" y="138" text-anchor="middle">Node 22.18.0 (pinned)</text>
+        <text class="dg-s" x="305" y="160" text-anchor="middle">/health — অগভীর, DB ছোঁয় না</text>
+        <text class="dg-s" x="305" y="178" text-anchor="middle">/health/db — গভীর, অচল হলে 503</text>
+
+        <rect class="dg-box" x="180" y="224" width="250" height="58" rx="5"></rect>
+        <text class="dg-t" x="305" y="248" text-anchor="middle">Build — prisma generate</text>
+        <text class="dg-m" x="305" y="266" text-anchor="middle">binaryTargets ×২</text>
+        <path class="dg-a" d="M305,224 L305,204"></path>
+
+        <rect class="dg-box" x="540" y="48" width="250" height="60" rx="5"></rect>
+        <text class="dg-t" x="665" y="72" text-anchor="middle">Neon — pooled endpoint</text>
+        <text class="dg-m" x="665" y="92" text-anchor="middle">pgbouncer · connection_limit=1</text>
+
+        <rect class="dg-box" x="540" y="136" width="250" height="56" rx="5"></rect>
+        <text class="dg-t" x="665" y="160" text-anchor="middle">Upstash Redis</text>
+        <text class="dg-m" x="665" y="179" text-anchor="middle">rediss:// TLS</text>
+
+        <rect class="dg-box" x="540" y="222" width="250" height="60" rx="5"></rect>
+        <text class="dg-t" x="665" y="246" text-anchor="middle">Neon — direct endpoint</text>
+        <text class="dg-m" x="665" y="266" text-anchor="middle">pooler ছাড়া</text>
+
+        <path class="dg-ac" d="M430,108 C480,100 500,84 536,80"></path>
+        <text class="dg-ma" x="486" y="56" text-anchor="middle">DATABASE_URL</text>
+        <text class="dg-s" x="486" y="42" text-anchor="middle">প্রতিটি runtime query</text>
+
+        <path class="dg-a dg-dash" style="stroke-dasharray:4 3" d="M430,164 L536,164"></path>
+        <text class="dg-m" x="483" y="158" text-anchor="middle">REDIS_URL · ঐচ্ছিক</text>
+
+        <path class="dg-a" d="M430,252 L536,252"></path>
+        <text class="dg-m" x="483" y="246" text-anchor="middle">DIRECT_URL</text>
+        <text class="dg-s" x="483" y="232" text-anchor="middle">শুধু migration</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>ডায়াগ্রাম ৪ — ডিপ্লয়মেন্ট।</b> দুটি database URL ইচ্ছাকৃত: Neon-এর pooled endpoint
+      pgBouncer চালায়, যেটি DDL চালাতে পারে না — তাই migration যায় সরাসরি endpoint-এ আর প্রতিটি
+      runtime query যায় pooler-এর মধ্য দিয়ে। দুটি Prisma binary target দরকার, কারণ build container
+      Debian আর ডেভেলপারের মেশিন নয়। Render-এর সামনে কোনো CDN, WAF বা proxy স্তর নেই।
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══ ০৫ ডেটা মডেল ═════════════════════════════════════════════════════ -->
+<section id="s5">
+  <div class="sec-head">
+    <div class="sec-num">০৫ / DATA MODEL</div>
+    <h2>ডেটা মডেল</h2>
+  </div>
+  <div class="col">
+    <p>
+      তিনটি টেবিল, দুটি enum, সাতটি index। primary key হিসেবে UUID <b>v7</b> ব্যবহার করা হয়েছে,
+      v4 নয় — v7-এর উপরের bit-গুলোতে timestamp থাকে, ফলে তৈরি হওয়া id মোটামুটি সময়ের ক্রমে
+      সাজানো থাকে এবং নতুন row index-এর শেষে বসে, পুরো index জুড়ে ছড়িয়ে পড়ে না।
+    </p>
+  </div>
+
+  <figure>
+    <div class="fig-frame">
+      <svg class="dg" viewBox="0 0 900 260" role="img" aria-label="ডেটাবেস সম্পর্ক ডায়াগ্রাম">
+        <!-- users -->
+        <rect class="dg-box" x="10" y="100" width="230" height="140" rx="5"></rect>
+        <rect class="dg-box-a" x="10" y="100" width="230" height="26" rx="5"></rect>
+        <text class="dg-ma" x="125" y="118" text-anchor="middle">users</text>
+        <text class="dg-m" x="22" y="145">id</text>          <text class="dg-s" x="228" y="145" text-anchor="end">PK · uuid7</text>
+        <text class="dg-m" x="22" y="164">name</text>
+        <text class="dg-m" x="22" y="183">email</text>       <text class="dg-s" x="228" y="183" text-anchor="end">UNIQUE</text>
+        <text class="dg-m" x="22" y="202">password</text>    <text class="dg-s" x="228" y="202" text-anchor="end">bcrypt hash</text>
+        <text class="dg-m" x="22" y="221">role</text>        <text class="dg-s" x="228" y="221" text-anchor="end">enum · CUSTOMER</text>
+        <text class="dg-m" x="22" y="236">createdAt</text>
+
+        <!-- parcels -->
+        <rect class="dg-box" x="335" y="100" width="230" height="140" rx="5"></rect>
+        <rect class="dg-box-a" x="335" y="100" width="230" height="26" rx="5"></rect>
+        <text class="dg-ma" x="450" y="118" text-anchor="middle">parcels</text>
+        <text class="dg-m" x="347" y="145">id</text>              <text class="dg-s" x="553" y="145" text-anchor="end">PK · uuid7</text>
+        <text class="dg-m" x="347" y="164">trackingCode</text>    <text class="dg-s" x="553" y="164" text-anchor="end">UNIQUE</text>
+        <text class="dg-m" x="347" y="183">status</text>          <text class="dg-s" x="553" y="183" text-anchor="end">enum · INDEX</text>
+        <text class="dg-m" x="347" y="202">customerId</text>      <text class="dg-s" x="553" y="202" text-anchor="end">FK · Restrict</text>
+        <text class="dg-m" x="347" y="221">assignedStaffId</text> <text class="dg-s" x="553" y="221" text-anchor="end">FK · SetNull</text>
+        <text class="dg-s" x="347" y="236">+ আরও ৭টি ফিল্ড</text>
+
+        <!-- history -->
+        <rect class="dg-box" x="660" y="100" width="230" height="140" rx="5"></rect>
+        <rect class="dg-box-a" x="660" y="100" width="230" height="26" rx="5"></rect>
+        <text class="dg-ma" x="775" y="118" text-anchor="middle">parcel_status_history</text>
+        <text class="dg-m" x="672" y="145">id</text>          <text class="dg-s" x="878" y="145" text-anchor="end">PK</text>
+        <text class="dg-m" x="672" y="164">parcelId</text>    <text class="dg-s" x="878" y="164" text-anchor="end">FK · Cascade</text>
+        <text class="dg-m" x="672" y="183">oldStatus</text>   <text class="dg-s" x="878" y="183" text-anchor="end">প্রথম row-তে null</text>
+        <text class="dg-m" x="672" y="202">newStatus</text>
+        <text class="dg-m" x="672" y="221">changedById</text> <text class="dg-s" x="878" y="221" text-anchor="end">FK · Restrict</text>
+        <text class="dg-m" x="672" y="236">createdAt</text>   <text class="dg-s" x="878" y="236" text-anchor="end">INDEX ×২</text>
+
+        <!-- relationships -->
+        <path class="dg-a" d="M240,152 L331,152"></path>
+        <text class="dg-m" x="286" y="145" text-anchor="middle">owns · Restrict</text>
+        <text class="dg-s" x="246" y="166">১</text><text class="dg-s" x="322" y="166">N</text>
+
+        <path class="dg-a" d="M240,200 L331,200"></path>
+        <text class="dg-m" x="286" y="193" text-anchor="middle">delivers · SetNull</text>
+        <text class="dg-s" x="246" y="214">১</text><text class="dg-s" x="322" y="214">N</text>
+
+        <path class="dg-a" d="M565,176 L656,176"></path>
+        <text class="dg-m" x="611" y="169" text-anchor="middle">audit · Cascade</text>
+        <text class="dg-s" x="571" y="190">১</text><text class="dg-s" x="647" y="190">N</text>
+
+        <path class="dg-a" d="M125,98 L125,40 L775,40 L775,96"></path>
+        <text class="dg-m" x="450" y="32" text-anchor="middle">changed by · Restrict — কে বদলেছে তা কখনো হারায় না</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>ডায়াগ্রাম ৫ — ডেটা মডেল।</b> লক্ষ্য করুন foreign key-এর তিনটি ভিন্ন আচরণ, এবং প্রতিটির
+      কারণ আলাদা। মালিকের ক্ষেত্রে <code>Restrict</code> — পার্সেল কখনো মালিকহীন হতে পারে না।
+      ডেলিভারি স্টাফের ক্ষেত্রে <code>SetNull</code> — কর্মী চলে গেলে পার্সেল মুক্ত হবে, আটকে
+      যাবে না। History-র ক্ষেত্রে <code>Cascade</code> পার্সেলের দিকে, কিন্তু ব্যবহারকারীর দিকে
+      <code>Restrict</code> — যে audit trail ভুলে যায় কে কাজটি করেছিল, সেটি আর audit trail নয়।
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-frame">
+      <svg class="dg" viewBox="0 0 900 200" role="img" aria-label="পার্সেল স্ট্যাটাস স্টেট মেশিন">
+        <text class="dg-m" x="450" y="12" text-anchor="middle">৫টি state · ২৫টি সম্ভাব্য জোড়া · বৈধ মাত্র ৪টি</text>
+
+        <circle class="dg-box-a" cx="24" cy="102" r="7"></circle>
+        <path class="dg-ac" d="M32,102 L46,102"></path>
+
+        <rect class="dg-box-a" x="50"  y="76" width="140" height="52" rx="5"></rect>
+        <text class="dg-ma" x="120" y="100" text-anchor="middle">PENDING</text>
+        <text class="dg-s"  x="120" y="118" text-anchor="middle">তৈরি হওয়ার মুহূর্তে</text>
+
+        <rect class="dg-box" x="222" y="76" width="140" height="52" rx="5"></rect>
+        <text class="dg-ma" x="292" y="100" text-anchor="middle">PICKED_UP</text>
+        <text class="dg-s"  x="292" y="118" text-anchor="middle">সংগ্রহ করা হয়েছে</text>
+
+        <rect class="dg-box" x="394" y="76" width="140" height="52" rx="5"></rect>
+        <text class="dg-ma" x="464" y="100" text-anchor="middle">IN_TRANSIT</text>
+        <text class="dg-s"  x="464" y="118" text-anchor="middle">পথে আছে</text>
+
+        <rect class="dg-box" x="566" y="76" width="140" height="52" rx="5"></rect>
+        <text class="dg-ma" x="636" y="100" text-anchor="middle">OUT_FOR_DELIVERY</text>
+        <text class="dg-s"  x="636" y="118" text-anchor="middle">বিতরণের পথে</text>
+
+        <rect class="dg-box-a" x="738" y="76" width="140" height="52" rx="5"></rect>
+        <text class="dg-ma" x="808" y="100" text-anchor="middle">DELIVERED</text>
+        <text class="dg-s"  x="808" y="118" text-anchor="middle">চূড়ান্ত · terminal</text>
+
+        <path class="dg-ac" d="M190,102 L218,102"></path>
+        <path class="dg-ac" d="M362,102 L390,102"></path>
+        <path class="dg-ac" d="M534,102 L562,102"></path>
+        <path class="dg-ac" d="M706,102 L734,102"></path>
+
+        <!-- what the machine refuses -->
+        <path class="dg-aw" d="M450,74 C420,44 210,42 128,70"></path>
+        <text class="dg-mw" x="292" y="40" text-anchor="middle">পিছনে ফেরা — 409</text>
+
+        <path class="dg-aw" d="M124,130 C170,172 400,174 458,132"></path>
+        <text class="dg-mw" x="292" y="180" text-anchor="middle">ধাপ এড়ানো — 409</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>ডায়াগ্রাম ৬ — স্ট্যাটাস স্টেট মেশিন।</b> পাঁচটি state থেকে ২৫টি ক্রমিক জোড়া সম্ভব;
+      বৈধ মাত্র চারটি। একই status আবার সেট করাও প্রত্যাখ্যাত — নিরীহ no-op হিসেবে মেনে নিলে
+      audit trail-এ একটি অর্থহীন row লেখা হতো, আর সেই trail-ই এখানে রক্ষা করার জিনিস।
+      নিয়মগুলো একটি frozen object হিসেবে এমন একটি module-এ থাকে যা কিছুই import করে না —
+      সেজন্যই এগুলো database বা mock ছাড়াই যাচাই করা যায়।
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══ ০৬ অন্যান্য তথ্য ══════════════════════════════════════════════════ -->
+<section id="s6">
+  <div class="sec-head">
+    <div class="sec-num">০৬ / REFERENCE</div>
+    <h2>প্রয়োজনীয় অন্যান্য তথ্য</h2>
+  </div>
+
+  <h3>Response format — একটিই খাম, প্রতিটি endpoint-এ</h3>
+  <div class="col">
+    <p>
+      প্রতিটি response একই আকৃতির। ফলে client-এর একটিমাত্র parser দিয়ে সব উত্তর সামলানো যায়,
+      endpoint-ভেদে আলাদা special case লাগে না। <code>meta</code> শুধু list endpoint-গুলোতে থাকে।
+    </p>
+  </div>
+  <div class="two">
+<pre><code><span class="c">// সফল</span>
+{
+  <span class="k">"success"</span>: true,
+  <span class="k">"data"</span>: { … },
+  <span class="k">"meta"</span>: {
+    <span class="k">"page"</span>: 1,  <span class="k">"limit"</span>: 20,
+    <span class="k">"total"</span>: 7, <span class="k">"totalPages"</span>: 1
+  }
+}</code></pre>
+<pre><code><span class="c">// ব্যর্থ</span>
+{
+  <span class="k">"success"</span>: false,
+  <span class="k">"error"</span>: {
+    <span class="k">"code"</span>: <span class="k">"INVALID_STATUS_TRANSITION"</span>,
+    <span class="k">"message"</span>: <span class="k">"…"</span>,
+    <span class="k">"details"</span>: { … },
+    <span class="k">"requestId"</span>: <span class="k">"78ce46f6-…"</span>
+  }
+}</code></pre>
+  </div>
+  <div class="col">
+    <div class="note">
+      <span class="lbl">Client-দের জন্য নিয়ম</span>
+      <p>
+        <code>code</code> দেখে সিদ্ধান্ত নিন, <code>message</code> দেখে নয়। বার্তার ভাষা বদলাতে
+        পারে, কিন্তু code বদলায় না। প্রতিটি error-এ <code>requestId</code> থাকে এবং সেটি
+        <code>X-Request-Id</code> header-এর সাথে মেলে, তাই কেউ কোনো সমস্যার কথা জানালে সেটি
+        log-এ হুবহু খুঁজে পাওয়া যায়।
+      </p>
+    </div>
+  </div>
+
+  <h3>HTTP status ও প্রধান error code</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">Status</th><th>কখন</th><th class="mono">প্রধান code</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">200</td><td>পড়া বা হালনাগাদ সফল</td><td class="mono">—</td></tr>
+        <tr><td class="mono">201</td><td>নতুন কিছু তৈরি হয়েছে</td><td class="mono">—</td></tr>
+        <tr><td class="mono">401</td><td>Token নেই, ভাঙা, মেয়াদোত্তীর্ণ বা অবৈধ</td><td class="mono">TOKEN_MISSING · TOKEN_EXPIRED · INVALID_CREDENTIALS</td></tr>
+        <tr><td class="mono">403</td><td>পরিচিত caller, কিন্তু এই endpoint তার জন্য নয়</td><td class="mono">FORBIDDEN</td></tr>
+        <tr><td class="mono">404</td><td>নেই, অথবা caller-এর scope-এর বাইরে</td><td class="mono">PARCEL_NOT_FOUND · ROUTE_NOT_FOUND</td></tr>
+        <tr><td class="mono">409</td><td>দ্বন্দ্ব — ডুপ্লিকেট, অবৈধ transition, বা race</td><td class="mono">EMAIL_TAKEN · INVALID_STATUS_TRANSITION · STATUS_CONFLICT</td></tr>
+        <tr><td class="mono">413</td><td>Body ১০০kb-এর বেশি</td><td class="mono">PAYLOAD_TOO_LARGE</td></tr>
+        <tr><td class="mono">422</td><td>Validation ব্যর্থ, বা ভুল ধরনের staff</td><td class="mono">VALIDATION_ERROR · NOT_DELIVERY_STAFF</td></tr>
+        <tr><td class="mono">429</td><td>Rate limit অতিক্রম</td><td class="mono">TOO_MANY_LOGIN_ATTEMPTS</td></tr>
+        <tr><td class="mono">500</td><td>অপ্রত্যাশিত — বার্তা সবসময় সাধারণ</td><td class="mono">INTERNAL_ERROR</td></tr>
+        <tr><td class="mono">503</td><td>Database-এ পৌঁছানো যাচ্ছে না</td><td class="mono">DATABASE_UNAVAILABLE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ভূমিকা ও দৃশ্যমানতা</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">Role</th><th>কী দেখতে পায়</th><th>তৈরি</th><th>Status এগোনো</th><th class="mono">/admin</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">CUSTOMER</td><td>নিজের পার্সেল</td><td><span class="stamp a">হ্যাঁ</span></td><td><span class="stamp n">না</span></td><td><span class="stamp n">না</span></td></tr>
+        <tr><td class="mono">DELIVERY_STAFF</td><td>নিজের উপর assign করা পার্সেল</td><td><span class="stamp n">না</span></td><td><span class="stamp a">নিজেরগুলো</span></td><td><span class="stamp n">না</span></td></tr>
+        <tr><td class="mono">ADMIN</td><td>সবকিছু</td><td><span class="stamp a">হ্যাঁ</span></td><td><span class="stamp a">হ্যাঁ</span></td><td><span class="stamp a">হ্যাঁ</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>সবকটি endpoint</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">Method</th><th class="mono">Path</th><th>কে ডাকতে পারে</th><th>মন্তব্য</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">GET</td><td class="mono">/</td><td>সবাই</td><td>সার্ভিসের নাম, সংস্করণ, route prefix</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/health</td><td>সবাই</td><td>অগভীর — database ছোঁয় না</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/health/db</td><td>সবাই</td><td>গভীর — অচল হলে 503</td></tr>
+        <tr><td class="mono">POST</td><td class="mono">/auth/register</td><td>সবাই</td><td>সবসময় CUSTOMER তৈরি হয়</td></tr>
+        <tr><td class="mono">POST</td><td class="mono">/auth/login</td><td>সবাই</td><td>Rate limited</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/auth/me</td><td>যেকোনো লগইনকৃত</td><td>Token যার, তার তথ্য</td></tr>
+        <tr><td class="mono">POST</td><td class="mono">/parcels</td><td>Customer · Admin</td><td>PENDING-এ তৈরি, প্রথম history row সহ</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/parcels</td><td>যেকোনো role</td><td>Filter · pagination · sort, scope অনুযায়ী</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/parcels/:id/history</td><td>যেকোনো role</td><td>পুরনো থেকে নতুন ক্রমে</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/parcels/:trackingCode</td><td>যেকোনো role</td><td>Rate limited · history সহ</td></tr>
+        <tr><td class="mono">PATCH</td><td class="mono">/parcels/:id/status</td><td>Staff · Admin</td><td>State machine ও optimistic lock</td></tr>
+        <tr><td class="mono">PATCH</td><td class="mono">/parcels/:id/assign</td><td>Admin</td><td><code>null</code> পাঠালে assignment মুছে যায়</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/admin/stats</td><td>Admin</td><td>৭টি query, সবই database-এ গণনা</td></tr>
+        <tr><td class="mono">GET</td><td class="mono">/admin/users</td><td>Admin</td><td>Filter · search · pagination</td></tr>
+        <tr><td class="mono">PATCH</td><td class="mono">/admin/users/:id/role</td><td>Admin</td><td>নিজের role বদলানো যায় না</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <p>
+      পনেরোটি endpoint, সবগুলোই GET, POST বা PATCH — কোনো <code>DELETE</code> নেই। এটি ইচ্ছাকৃত:
+      যে সিস্টেমের মূল প্রতিশ্রুতি একটি অপরিবর্তনীয় ইতিহাস, সেখানে মুছে ফেলার পথ যোগ করার আগে
+      archive বনাম delete-এর প্রশ্নটি আলাদাভাবে ভাবা দরকার।
+    </p>
+  </div>
+
+  <h3>চালানোর ধাপ</h3>
+  <ol class="steps">
+    <li><b>প্রস্তুতি —</b> <code>npm install</code>, তারপর <code>cp .env.example .env</code>। Node ২২ বা তার নতুন সংস্করণ লাগবেই, কারণ অ্যাপটি <code>process.loadEnvFile()</code> ব্যবহার করে।</li>
+    <li><b>Secret তৈরি —</b> অন্তত ৩২ অক্ষরের একটি random string তৈরি করে <code>JWT_SECRET</code>-এ বসান। ছোট হলে সার্ভার চালুই হবে না।</li>
+    <li><b>Database —</b> <code>npm run db:up</code> দিয়ে Postgres ও Redis container চালু করুন, তারপর <code>npm run db:migrate</code>।</li>
+    <li><b>Seed —</b> <code>npm run db:seed</code> — পাঁচজন ব্যবহারকারী এবং সাতটি পার্সেল তৈরি হয়, প্রতিটির সম্পূর্ণ history সহ। আবার চালালেও নিরাপদ।</li>
+    <li><b>চালু —</b> <code>npm run dev</code>, এবং <code>npm run check</code> দিয়ে পুরো stack এক নজরে যাচাই করুন।</li>
+  </ol>
+  <div class="col">
+    <div class="note">
+      <span class="lbl">Seed করা অ্যাকাউন্ট</span>
+      <p>
+        একজন ADMIN (<code>admin@parcelflow.dev</code>), দুজন DELIVERY_STAFF
+        (<code>rahim.staff@</code>, <code>karim.staff@</code>) এবং দুজন CUSTOMER
+        (<code>ayesha.customer@</code>, <code>tanvir.customer@</code>)। পাসওয়ার্ড
+        <code>.env</code>-এর <code>SEED_*_PASSWORD</code> variable থেকে আসে — এগুলো শুধুই
+        development-এর সুবিধার জন্য, প্রকাশ্য কোনো পরিবেশে seed করার আগে অবশ্যই বদলাতে হবে।
+        Seed একই সাথে সাতটি পার্সেল লেখে, প্রতিটি status-এ অন্তত একটি, যাতে
+        <code>/admin/stats</code> রিপোর্ট করার মতো সত্যিকারের ডেটা পায়।
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ০৭ সমস্যা ও সমাধান ════════════════════════════════════════════════ -->
+<section id="s7">
+  <div class="sec-head">
+    <div class="sec-num">০৭ / PROBLEMS SOLVED</div>
+    <h2>যেসব সমস্যার সম্মুখীন হয়েছি, ও সমাধান</h2>
+  </div>
+  <div class="col">
+    <p>
+      নিচের প্রতিটি ভুক্তির পাশে কোড ফাইল বা commit-এর উল্লেখ আছে। অর্থাৎ প্রতিটি দাবি
+      repository-তে যাচাই করা যায় — কোনোটিই স্মৃতি থেকে লেখা নয়।
+    </p>
+  </div>
+
+  <div class="ledger">
+    <div class="lrow"><span class="n">০১</span><div>
+      <h5>দুজন staff একসাথে একই পার্সেল এগোলে ইতিহাসে দুটি row লেখা হতো</h5>
+      <p class="fix">দুটি request একই সময়ে <code>status</code> পড়ে, দুটোই validation পাস করে, দুটোই লিখে ফেলে — ফলে audit trail মিথ্যা হয়ে যায়। <b>সমাধান:</b> UPDATE-টিকে শর্তসাপেক্ষ করা হয়েছে — <code>WHERE id = ? AND status = ‹একটু আগে পড়া মান›</code>। কেউ আগে বদলে ফেললে শূন্য row মেলে, transaction rollback হয়, এবং দ্বিতীয়জন 409 <code>STATUS_CONFLICT</code> পান। কোনো lock ধরে রাখতে হয় না।</p>
+      <span class="src">parcels.service.js — updateStatus()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০২</span><div>
+      <h5>Tracking code অনুমান করে অন্যের পার্সেল বের করা যেত</h5>
+      <p class="fix"><code>Math.random()</code> অনুমানযোগ্য অবস্থা থেকে seed হয়, তাই তা দিয়ে তৈরি code ধারাবাহিকভাবে অনুমান করা সম্ভব। <b>সমাধান:</b> <code>crypto.randomInt</code>, এবং বর্ণমালা থেকে বিভ্রান্তিকর অক্ষর (I, L, O, 0, 1) বাদ — যাতে লেবেল থেকে হাতে টাইপ করলেও ভুল না হয়। আলাদা সমস্যা ছিল uniqueness: আগে খুঁজে দেখে তারপর insert করা একটি race। তাই সরাসরি insert করে UNIQUE constraint-কে সংঘর্ষ ধরতে দেওয়া হয়, আর সংঘর্ষ হলে পাঁচবার পর্যন্ত retry।</p>
+      <span class="src">utils/trackingCode.js · parcels.service.js — createParcel()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৩</span><div>
+      <h5>Login-এর উত্তর আসতে কত সময় লাগে, তা দেখেই বোঝা যেত email নিবন্ধিত কি না</h5>
+      <p class="fix">অচেনা email-এ কোনো bcrypt তুলনা হয় না, তাই উত্তর আসে মাইক্রোসেকেন্ডে; সঠিক email-এ ভুল পাসওয়ার্ড দিলে bcrypt-এর জন্য ~১০০ms লাগে। শুধু এই সময়ের পার্থক্য দিয়েই কোন ঠিকানাগুলো নিবন্ধিত তা বের করে ফেলা যায়। <b>সমাধান:</b> অচেনা email-এর পথেও একটি dummy hash-এর বিপরীতে bcrypt তুলনা চালানো হয়, এবং দুই ক্ষেত্রেই হুবহু একই 401 <code>INVALID_CREDENTIALS</code> ফেরে।</p>
+      <span class="src">auth.service.js — DUMMY_HASH, login()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৪</span><div>
+      <h5>Register করার সময় <code>{"role":"ADMIN"}</code> পাঠিয়ে admin হয়ে যাওয়া যেত</h5>
+      <p class="fix"><code>/auth/register</code> unauthenticated। এটি যদি body থেকে role পড়ে, তবে এটি কার্যত একটি admin-অ্যাকাউন্ট কারখানা। <b>সমাধান:</b> দুটি স্তর, যার কোনোটির উপর একা নির্ভর করা হয়নি — Zod schema <code>strictObject</code>, তাই অচেনা <code>role</code> key ৪২২ দেয় (নীরবে বাদ যায় না); আর service-এ role সরাসরি <code>CUSTOMER</code> লেখা।</p>
+      <span class="src">auth.schemas.js — registerSchema · auth.service.js — register()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৫</span><div>
+      <h5>403 না 404 — উত্তরটাই ফাঁস করে দিচ্ছিল পার্সেলটি আদৌ আছে কি না</h5>
+      <p class="fix">অন্যের পার্সেলে 403 দিলে সেটিই নিশ্চিত করে যে ওই tracking code-এ একটি পার্সেল আছে। <b>সমাধান:</b> ownership-কে permission check নয়, বরং query শর্ত হিসেবে ধরা হয়েছে — <code>scopeFor()</code> প্রতিটি read-এর <code>WHERE</code> clause-এ যুক্ত হয়। ফলে scope-এর বাইরের row database ছাড়েই না, এবং "নেই" ও "আপনার নয়" — দুটোই অভিন্ন 404।</p>
+      <span class="src">parcels.service.js — scopeFor()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৬</span><div>
+      <h5>Proxy-র পিছনে আসল client IP কোনটি, তা বের করতে পারছিলাম না</h5>
+      <p class="fix">Render-এ deploy করার পর rate limiter ভুল IP-তে গণনা করছিল, ফলে একই সীমা কখনো সবার উপর, কখনো কারও উপরই প্রয়োগ হচ্ছিল না। <b>যেভাবে এগিয়েছি:</b> প্রথমে Redis যোগ করা হলো যাতে counter সব instance-এ ভাগ হয়; তারপর <code>passOnStoreError</code>, যাতে Redis-এর সাময়িক সমস্যায় পুরো API 500 না দেয়; তারপর একটি অস্থায়ী debug endpoint বসিয়ে দেখা হলো Render আসলে কোন IP পাঠাচ্ছে; সবশেষে সেটি সরিয়ে <code>trust proxy</code> ঠিক করা হলো। ছয় মিনিটে তিনটি commit — production-এ proxy debug করা আসলে এভাবেই দেখায়।</p>
+      <span class="src">commits eaaa8f1 → 98bd6dc → eaf6d7c → 1f90d4e (২৮ আগস্ট)</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৭</span><div>
+      <h5>Neon-এ migration চলছিল না</h5>
+      <p class="fix">Neon-এর pooled endpoint pgBouncer চালায় transaction mode-এ, আর সেই mode-এ DDL চালানো যায় না — <code>prisma migrate</code> ব্যর্থ হচ্ছিল। <b>সমাধান:</b> দুটি আলাদা connection string। <code>DATABASE_URL</code> (pooled) প্রতিটি runtime query-র জন্য, আর <code>DIRECT_URL</code> (direct) শুধু migration-এর জন্য। Prisma datasource-এর <code>directUrl</code> ঠিক এই কাজের জন্যই আছে।</p>
+      <span class="src">prisma/schema.prisma — datasource db</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৮</span><div>
+      <h5>Deploy করার পর Prisma engine চলছিল না</h5>
+      <p class="fix">Build container Debian-ভিত্তিক, আর ডেভেলপমেন্ট মেশিন নয় — build-এর সময় তৈরি query engine runtime image-এর সাথে মিলছিল না। <b>সমাধান:</b> <code>binaryTargets = ["native", "debian-openssl-3.0.x"]</code> — দুটি target-এর জন্যই engine তৈরি হয়।</p>
+      <span class="src">prisma/schema.prisma — generator client</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৯</span><div>
+      <h5>Neon-এ migrate করার পর seed করা login কাজ করছিল না</h5>
+      <p class="fix">Migration হোস্টেড database-এ schema তৈরি করেছিল ঠিকই, কিন্তু টেবিলগুলো ছিল খালি — seed তখনো শুধু local database-এ চলেছিল। ফলে <code>admin@parcelflow.dev</code> দিয়ে login করলে 401 আসছিল, যা দেখে মনে হচ্ছিল auth-এ সমস্যা, অথচ সমস্যাটি ছিল ডেটার। <b>সমাধান:</b> seed script-কে হোস্টেড instance-এর দিকে চালানো। Script-টি বারবার চালানো নিরাপদ — ব্যবহারকারী email দিয়ে upsert হয়, আর পার্সেল কেবল টেবিল খালি থাকলেই তৈরি হয়।</p>
+      <span class="src">prisma/seed.js</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১০</span><div>
+      <h5>একই পাসওয়ার্ডের দুটি ভিন্ন রূপে একই অ্যাকাউন্ট খুলে যেতে পারত</h5>
+      <p class="fix">bcrypt কেবল প্রথম ৭২ বাইট hash করে, বাকিটা চুপচাপ উপেক্ষা করে। অর্থাৎ ৮০ অক্ষরের দুটি ভিন্ন পাসওয়ার্ড, যাদের প্রথম ৭২ বাইট এক, একই hash তৈরি করবে। <b>সমাধান:</b> schema-তেই <code>.max(72)</code>, যাতে সীমাটি স্পষ্ট এবং যাচাইকৃত হয়, লুকানো আচরণ না থাকে।</p>
+      <span class="src">auth.schemas.js — passwordSchema</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১১</span><div>
+      <h5>Prisma দুটি <code>User</code> সম্পর্ককে আলাদা করতে পারছিল না</h5>
+      <p class="fix">একটি পার্সেল দুইভাবে ব্যবহারকারীর সাথে যুক্ত — মালিক হিসেবে এবং যাকে assign করা হয়েছে তার হিসেবে। দুটি relation একই দুই model-এর মধ্যে হওয়ায় Prisma schema validate করতে পারছিল না। <b>সমাধান:</b> নামযুক্ত relation — <code>ParcelCustomer</code> ও <code>ParcelAssignedStaff</code> — দুই প্রান্তেই একই নাম দিয়ে।</p>
+      <span class="src">prisma/schema.prisma — model User, model Parcel</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১২</span><div>
+      <h5>Express 5-এ <code>req.query</code>-তে লেখা যায় না</h5>
+      <p class="fix">Express 5-এ <code>req.query</code> একটি read-only getter হয়ে গেছে, তাই পুরনো অভ্যাস — validate করে parsed মান দিয়ে <code>req.query</code> overwrite করা — আর কাজ করে না। <b>সমাধান:</b> parsed ফলাফল <code>req.validated</code>-তে লেখা হয়। ফলে raw request অক্ষত থাকে, আর validation-পরবর্তী প্রতিটি মান আগে থেকেই coerce ও trim করা — এটি বাধ্যতা থেকে শুরু হলেও শেষ পর্যন্ত ভালো নকশা হয়েছে।</p>
+      <span class="src">middleware/validate.js</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১৩</span><div>
+      <h5>Free-tier build machine-এ native <code>bcrypt</code> build হচ্ছিল না</h5>
+      <p class="fix">Native <code>bcrypt</code>-এর install-এর সময় C++ toolchain দরকার, যা free-tier build container-এ প্রায়ই থাকে না। <b>সমাধান:</b> <code>bcryptjs</code> — সম্পূর্ণ JavaScript-এ লেখা, কোনো native build ধাপ নেই। খরচ বাস্তব: এটি native binding-এর চেয়ে ধীর। Cost factor configuration থেকে আসে, তাই test কমাতে পারে এবং production বাড়াতে পারে, কোড না বদলেই।</p>
+      <span class="src">utils/password.js</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১৪</span><div>
+      <h5>পরিসংখ্যানে শূন্য-সংখ্যক status উধাও হয়ে যাচ্ছিল</h5>
+      <p class="fix">Prisma-র <code>groupBy</code> শুধু সেই মানগুলোর row ফেরত দেয় যেগুলো অন্তত একবার আছে। ফলে কোনো পার্সেল <code>IN_TRANSIT</code> না থাকলে সেই key উত্তরেই থাকত না, এবং প্রতিটি client-কে অনুপস্থিত key সামলাতে হতো। <b>সমাধান:</b> <code>toCountMap()</code> প্রতিটি সম্ভাব্য key শূন্য দিয়ে পূরণ করে, তাই উত্তরের আকৃতি সবসময় একই।</p>
+      <span class="src">admin.service.js — toCountMap()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১৫</span><div>
+      <h5>Staff-কে demote করলে তার পার্সেলগুলো আটকে যেত</h5>
+      <p class="fix">Role বদলে গেলেও পার্সেল তার নামেই assign থাকত, অথচ সে আর সেগুলোর status বদলাতে পারত না — পার্সেলগুলো কার্যত অদৃশ্য হয়ে যেত। <b>সমাধান:</b> role পরিবর্তন এবং তার অসম্পূর্ণ পার্সেল মুক্ত করা — দুটোই একই transaction-এ। উত্তরে কতগুলো পার্সেল মুক্ত হলো তাও ফেরত আসে।</p>
+      <span class="src">admin.service.js — updateUserRole()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১৬</span><div>
+      <h5>শেষ admin নিজেকে demote করে সবাইকে লক করে ফেলতে পারত</h5>
+      <p class="fix">Role পরিবর্তনের endpoint-এ নিজের id দিলে সিস্টেমে আর কোনো admin না-ও থাকতে পারত, এবং কেউ আর কাউকে promote করতে পারত না। <b>সমাধান:</b> caller-এর নিজের id-তে এই কাজ সরাসরি নিষিদ্ধ — 409 <code>CANNOT_CHANGE_OWN_ROLE</code>।</p>
+      <span class="src">admin.service.js — updateUserRole()</span>
+    </div></div>
+
+    <div class="lrow"><span class="n">১৭</span><div>
+      <h5>Uptime monitor প্রতি ৩০ সেকেন্ডে একটি database connection খরচ করছিল</h5>
+      <p class="fix">একটিমাত্র health endpoint যদি database ছোঁয়, তবে monitoring নিজেই একটি ধারাবাহিক লোড — বিশেষ করে <code>connection_limit=1</code> pool-এ। আবার database না ছুঁলে অচল database ধরাই পড়ে না। <b>সমাধান:</b> দুটি আলাদা প্রশ্ন, দুটি আলাদা endpoint — <code>/health</code> শুধু বলে process বেঁচে আছে, <code>/health/db</code> সত্যিই query করে এবং অচল হলে 503 দেয়।</p>
+      <span class="src">src/app.js</span>
+    </div></div>
+  </div>
+
+  <div class="col">
+    <h3>যেগুলো শুধু আপনিই জানেন</h3>
+    <p>
+      উপরের প্রতিটি ভুক্তি কোড বা commit থেকে যাচাই করা। কিন্তু কিছু অভিজ্ঞতা repository-তে কোনো
+      চিহ্ন রাখে না — যা শিখতে সময় লেগেছে, যা একবার লিখে মুছে আবার লিখেছেন, বা যেটি বুঝতে
+      ডকুমেন্টেশন ঘাঁটতে হয়েছে। viva-তে এই উত্তরগুলোই সবচেয়ে বিশ্বাসযোগ্য শোনায়, তাই নিচের
+      জায়গাগুলো নিজের ভাষায় পূরণ করুন।
+    </p>
+    <div class="slot">
+      <span class="lbl">আপনার ইনপুট ১ — যা শিখতে সবচেয়ে বেশি সময় লেগেছে</span>
+      <p>যেমন: Prisma-র transaction API, Zod-এর pipe/transform, অথবা Express 5-এর নতুন আচরণ — কোনটি প্রথমে বুঝতে অসুবিধা হয়েছিল এবং কীভাবে বুঝলেন।</p>
+    </div>
+    <div class="slot">
+      <span class="lbl">আপনার ইনপুট ২ — যে সিদ্ধান্ত একবার নিয়ে পরে বদলেছেন</span>
+      <p>যেমন: প্রথমে অন্য কোনো কাঠামো বা লাইব্রেরি বেছে নিয়ে পরে সরে আসা — কী কারণে বদলালেন।</p>
+    </div>
+    <div class="slot">
+      <span class="lbl">আপনার ইনপুট ৩ — সবচেয়ে বিরক্তিকর bug</span>
+      <p>যেটি ধরতে সবচেয়ে বেশি সময় গেছে, এবং শেষ পর্যন্ত কারণটি কী ছিল।</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ০৮ প্রযুক্তি ══════════════════════════════════════════════════════ -->
+<section id="s8">
+  <div class="sec-head">
+    <div class="sec-num">০৮ / STACK</div>
+    <h2>ব্যবহৃত প্রযুক্তি</h2>
+  </div>
+  <div class="col">
+    <p>
+      প্রতিটি নির্বাচনের পিছনে একটি নির্দিষ্ট কারণ আছে, এবং কয়েকটি ক্ষেত্রে সেই কারণটি হলো
+      <em>একটি dependency এড়ানো</em>। প্রকল্পে <code>dotenv</code> নেই, <code>nodemon</code> নেই,
+      এবং async route wrapper-ও নেই — কারণ Node ২২ ও Express ৫ এই তিনটি কাজই নিজেরাই করে।
+    </p>
+  </div>
+
+  <h4>Runtime ও framework</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">প্রযুক্তি</th><th class="mono">সংস্করণ</th><th>কেন এটি</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">Node.js</td><td class="mono">22.18.0</td><td><code>process.loadEnvFile()</code> ও <code>node --watch</code> built-in, তাই <code>dotenv</code> ও <code>nodemon</code> কোনোটিই লাগে না। সংস্করণটি <code>.node-version</code>-এ pin করা, কারণ এটি পছন্দ নয় — শর্ত।</td></tr>
+        <tr><td class="mono">Express</td><td class="mono">5.x</td><td>Express ৫ rejected promise স্বয়ংক্রিয়ভাবে error handler-এ পাঠায়, তাই একটিও route handler try/catch বা <code>asyncHandler</code> দিয়ে মোড়ানো নেই।</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>ডেটা</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">প্রযুক্তি</th><th class="mono">সংস্করণ</th><th>কেন এটি</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">PostgreSQL</td><td class="mono">16</td><td>Enum, সত্যিকারের transaction, composite index এবং database-স্তরের aggregate — চারটিই এখানে ব্যবহৃত হয়েছে। Audit trail-এর নির্ভরযোগ্যতা transaction-এর উপর দাঁড়িয়ে।</td></tr>
+        <tr><td class="mono">Prisma</td><td class="mono">6.19</td><td>Migration-এর ইতিহাস ফাইল হিসেবে থাকে; প্রতিটি query parameterised; <code>$transaction</code>-এ interactive transaction লেখা যায়। Schema ফাইলটি নিজেই ডেটা মডেলের পাঠযোগ্য দলিল।</td></tr>
+        <tr><td class="mono">Neon</td><td class="mono">—</td><td>Serverless Postgres — pooled ও direct দুটি endpoint দেয়, যা migration আর runtime query আলাদা রাখতে দেয়।</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>নিরাপত্তা ও যাচাই</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">প্রযুক্তি</th><th class="mono">সংস্করণ</th><th>কেন এটি</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">Zod</td><td class="mono">4.x</td><td>দুই জায়গায় — HTTP boundary-তে input যাচাই, আর boot-এ environment যাচাই। <code>strictObject</code> অচেনা key নীরবে ফেলে না দিয়ে প্রত্যাখ্যান করে, যা privilege escalation বন্ধ করার একটি স্তর।</td></tr>
+        <tr><td class="mono">jsonwebtoken</td><td class="mono">9.x</td><td>Algorithm ও issuer দুটোই pin করা যায় — এটাই <code>alg: none</code> ও algorithm-confusion আক্রমণ বন্ধ করার উপায়।</td></tr>
+        <tr><td class="mono">bcryptjs</td><td class="mono">3.x</td><td>সম্পূর্ণ JavaScript, তাই free-tier build container-এ কোনো native build ধাপ ব্যর্থ হওয়ার সুযোগ নেই। Cost factor configuration থেকে আসে।</td></tr>
+        <tr><td class="mono">helmet</td><td class="mono">8.x</td><td>নিরাপত্তা-সংক্রান্ত HTTP header-গুলো এক লাইনে। সাথে <code>x-powered-by</code> বন্ধ করা হয়েছে।</td></tr>
+        <tr><td class="mono">express-rate-limit</td><td class="mono">8.x</td><td>Login ও tracking endpoint-এ throttling। <code>rate-limit-redis</code> ও <code>ioredis</code> সাথে থাকলে counter সব instance-এ ভাগ হয়।</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>পরিবেশ ও টুলিং</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">প্রযুক্তি</th><th>কেন এটি</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">Docker Compose</td><td>Local Postgres ও Redis, দুটোই healthcheck সহ। একটি init script আলাদা test database তৈরি করে, যাতে test চালালে development-এর ডেটা মুছে না যায়।</td></tr>
+        <tr><td class="mono">Upstash Redis</td><td>Managed Redis TLS সহ। ঐচ্ছিক — না থাকলে rate limiter in-memory store-এ চলে, যা একটিমাত্র instance-এর জন্য সঠিক।</td></tr>
+        <tr><td class="mono">Render</td><td>Node অ্যাপের জন্য সরাসরি deploy। Platform নিজেই <code>PORT</code> ও অন্যান্য variable inject করে, তাই production-এ <code>.env</code> পড়াই হয় না।</td></tr>
+        <tr><td class="mono">Postman</td><td>২৩টি সংরক্ষিত request — শুধু সফল পথ নয়, যেগুলো ব্যর্থ হওয়ার কথা সেগুলোও (403, 409, 422), যাতে নিয়মগুলো হাতে-কলমে দেখানো যায়।</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ ০৯ সীমাবদ্ধতা ════════════════════════════════════════════════════ -->
+<section id="s9">
+  <div class="sec-head">
+    <div class="sec-num">০৯ / ROADMAP</div>
+    <h2>সীমাবদ্ধতা ও পরবর্তী পরিকল্পনা</h2>
+  </div>
+  <div class="col">
+    <p>
+      যে কাজগুলো সচেতনভাবে এই ধাপের বাইরে রাখা হয়েছে, গুরুত্ব অনুযায়ী সাজানো। প্রতিটির পাশে
+      কী করতে হবে তা নির্দিষ্ট করে লেখা, যাতে এগুলো অস্পষ্ট ইচ্ছা নয় — কাজের তালিকা হয়ে থাকে।
+    </p>
+  </div>
+
+  <div class="ledger">
+    <div class="lrow"><span class="n">০১</span><div>
+      <h5>Rate limiting আরও শক্ত করা</h5>
+      <p class="fix">বর্তমানে limiter-এর bucket key প্রথমে <code>cf-connecting-ip</code> header থেকে নেওয়া হয়, আর header পাঠায় client নিজেই। এছাড়া <code>trust proxy</code> ৩-তে সেট, যেখানে এই deployment-এ hop আসলে একটি; এবং store-এ ত্রুটি হলে request পাস করে দেওয়া হয়। তিনটি মিলিয়ে limiter এখন কঠোর নিয়ন্ত্রণ নয়, বরং সাধারণ অপব্যবহারের বিরুদ্ধে একটি speed bump। <b>করণীয়:</b> platform-নির্ধারিত client IP-তে key করা, hop সংখ্যা বাস্তব মানে নামানো, এবং store ব্যর্থ হলে in-memory-তে ফিরে যাওয়া।</p>
+    </div></div>
+
+    <div class="lrow"><span class="n">০২</span><div>
+      <h5>Registration হার্ডেন করা</h5>
+      <p class="fix"><code>/auth/register</code>-এ কোনো rate limit নেই, এবং নিবন্ধিত ঠিকানার জন্য আলাদা 409 <code>EMAIL_TAKEN</code> ফেরে — অর্থাৎ login যে enumeration সাবধানে বন্ধ করেছে, register সেটি খুলে রাখে। পাসওয়ার্ডের কোনো ন্যূনতম দৈর্ঘ্যও এখন প্রয়োগ হয় না (শুধু bcrypt-এর ৭২ বাইট সর্বোচ্চ সীমা আছে)। <b>করণীয়:</b> limiter যোগ, ন্যূনতম দৈর্ঘ্য নির্ধারণ, এবং নিবন্ধিত ঠিকানার ক্ষেত্রেও একই আকৃতির উত্তর।</p>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৩</span><div>
+      <h5>Automated test লেখা</h5>
+      <p class="fix">পুরো harness ইতিমধ্যেই তৈরি এবং অব্যবহৃত: <code>createApp()</code> আলাদা করা হয়েছে যাতে test port ছাড়াই অ্যাপ চালাতে পারে, <code>supertest</code> ইনস্টল করা, <code>TEST_DATABASE_URL</code> config-এ যুক্ত, Docker init script আলাদা test database বানায়, এবং rate limiter test পরিবেশে নিজেকে skip করে। যা নেই তা হলো test ফাইল আর একটি <code>npm test</code> script। <b>অগ্রাধিকার:</b> প্রথমে <code>parcelStatus.js</code>-এর transition টেবিল (database লাগে না), তারপর প্রতিটি role-এর <code>scopeFor()</code> দৃশ্যমানতা, তারপর <code>updateStatus</code>-এর 409 race, তারপর register/login-এর enumeration আচরণ।</p>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৪</span><div>
+      <h5><code>assignStaff</code>-এর দুটি race বন্ধ করা</h5>
+      <p class="fix">এখানে পার্সেলের status ও লক্ষ্য ব্যবহারকারীর role পড়া হয়, তারপর লেখা হয় — তিনটি আলাদা statement-এ, কোনো transaction ছাড়া। পড়া আর লেখার মাঝে কর্মীকে demote করা হলে পার্সেল non-staff ব্যবহারকারীর নামে থেকে যেতে পারে, অথবা পার্সেল delivered হয়ে গেলে "delivered পার্সেল পুনরায় assign করা যায় না" নিয়মটি এড়িয়ে যায়। <b>করণীয়:</b> <code>updateStatus</code>-এ ব্যবহৃত একই কৌশল — UPDATE-কে পঠিত মানের উপর শর্তসাপেক্ষ করা।</p>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৫</span><div>
+      <h5>Error code-এর অসঙ্গতি দূর করা</h5>
+      <p class="fix"><code>USER_NOT_FOUND</code> দুটি ভিন্ন status-এ ফেরে — <code>authenticate</code> থেকে 401, আর admin service থেকে 404। যেহেতু client-দের বলা হয়েছে <code>message</code> নয়, <code>code</code> দেখে সিদ্ধান্ত নিতে, একই code-এর দুই অর্থ সত্যিকারের অস্পষ্টতা। <b>করণীয়:</b> হয় আলাদা code, নয়তো একই status।</p>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৬</span><div>
+      <h5>ছোট ধারালো কোণাগুলো</h5>
+      <p class="fix"><code>GET /parcels/‹uuid›</code> tracking-code route-এ গিয়ে পড়ে এবং 404-এর বদলে 422 দেয়, কারণ id ও tracking code একই path অবস্থান ভাগ করে। <code>trackingLimiter</code> <code>authenticate</code>-এর আগে চলে, তাই একটি unauthenticated request-ও কারও কোটা খরচ করে। Tracking code তৈরির পাঁচটি চেষ্টা শেষ হলে raw <code>P2002</code> বেরিয়ে 409 <code>DUPLICATE</code> হয়ে যায়, যা client-এর না-পাঠানো একটি মানের জন্য তাকেই দোষ দেয়। আর <code>cors()</code> এখন সব origin-এর জন্য খোলা।</p>
+    </div></div>
+
+    <div class="lrow"><span class="n">০৭</span><div>
+      <h5>যেসব সুবিধা এখনো তৈরি হয়নি</h5>
+      <p class="fix">বড় ডেটাসেটের জন্য cursor-ভিত্তিক pagination (offset গভীর page-এ ধীর হয়ে যায়); refresh token ও logout; <code>DELETE</code> বা archive endpoint — এখন একটিও নেই; এবং CI, অ্যাপের নিজস্ব <code>Dockerfile</code> ও repository-তে রাখা deploy configuration।</p>
+    </div></div>
+  </div>
+</section>
+
+<footer>
+  <p>
+    ParcelFlow API — parcel delivery management REST API।
+    কারিগরি বিস্তারিত ইংরেজিতে <code>docs/architecture.md</code>-এ, যেখানে ২০টি
+    Architecture Decision Record ও প্রতিটি ফিল্ড ও index-এর ব্যাখ্যা আছে।
+    Endpoint-এর সম্পূর্ণ reference <code>README.md</code>-এ।
+  </p>
+  <p class="fmono">Node 22 · Express 5 · PostgreSQL 16 · Prisma 6 · Zod 4 · JWT · bcryptjs</p>
+</footer>
+
+</div>

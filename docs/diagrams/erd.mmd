@@ -1,0 +1,40 @@
+%% ParcelFlow API — entity relationship diagram
+%% Source of truth: prisma/schema.prisma and prisma/migrations/20260827092934_init/migration.sql
+erDiagram
+    users ||--o{ parcels : "owns · ParcelCustomer · onDelete Restrict"
+    users ||--o{ parcels : "delivers · ParcelAssignedStaff · onDelete SetNull"
+    users ||--o{ parcel_status_history : "changed by · onDelete Restrict"
+    parcels ||--o{ parcel_status_history : "audit trail · onDelete Cascade"
+
+    users {
+        uuid id PK "uuid(7) — time-ordered, so inserts stay at the index tail"
+        text name
+        text email UK "unique — one account per address"
+        text password "bcrypt hash — selected only by login"
+        Role role "CUSTOMER | DELIVERY_STAFF | ADMIN, default CUSTOMER"
+        timestamp createdAt
+    }
+
+    parcels {
+        uuid id PK
+        text trackingCode UK "PF-XXXXX-XXXXX — the uniqueness guarantee itself"
+        text senderName
+        text receiverName
+        text pickupArea "IDX — filter"
+        text deliveryArea "IDX — filter and admin stats grouping"
+        text parcelType
+        ParcelStatus status "IDX — filter and stats grouping, default PENDING"
+        uuid customerId FK "IDX — every customer's own list"
+        uuid assignedStaffId FK "IDX — every staff member's work queue, null until assigned"
+        timestamp createdAt
+        timestamp updatedAt "@updatedAt"
+    }
+
+    parcel_status_history {
+        uuid id PK
+        uuid parcelId FK "IDX(parcelId, createdAt) — ordered fetch served by the index"
+        ParcelStatus oldStatus "null on exactly one row per parcel: the creation record"
+        ParcelStatus newStatus
+        uuid changedById FK "who did it — the reason Restrict, not Cascade"
+        timestamp createdAt
+    }
