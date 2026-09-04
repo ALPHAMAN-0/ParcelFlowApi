@@ -4,8 +4,9 @@ import { AppError } from '../../utils/AppError.js';
 import { generateTrackingCode, normalizeTrackingCode } from '../../utils/trackingCode.js';
 import { ParcelStatus, explainTransition, nextStatuses } from '../../domain/parcelStatus.js';
 
-// The shape every parcel endpoint returns. Relations are expanded to id and
-// name only, never the whole user row.
+// The shape every parcel endpoint returns. Relations are trimmed to what a
+// client actually needs — customer to id and name, assignedStaff to id, name
+// and email — never the whole user row, and never the password hash.
 export const parcelSelect = {
   id: true,
   trackingCode: true,
@@ -79,7 +80,9 @@ export async function createParcel(input, user) {
         return parcel;
       });
     } catch (err) {
-      if (isTrackingCodeCollision(err) && attempt < MAX_CODE_ATTEMPTS) continue;
+      // Let the loop guard decide when attempts run out, so exhaustion falls
+      // through to the 500 below instead of rethrowing P2002 as a 409 DUPLICATE.
+      if (isTrackingCodeCollision(err)) continue;
       throw err;
     }
   }

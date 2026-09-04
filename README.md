@@ -14,6 +14,7 @@ Node.js 22, Express 5, PostgreSQL 16, Prisma 6, Zod 4, JWT, bcryptjs.
 - [Seeded accounts](#seeded-accounts)
 - [Status flow](#status-flow)
 - [Response format](#response-format)
+- [Postman collection](#postman-collection)
 - [Endpoints](#endpoints)
 - [Roles and visibility](#roles-and-visibility)
 - [Project structure](#project-structure)
@@ -180,6 +181,20 @@ can be found in the logs.
 | 500 | Unexpected. Message is always generic |
 | 503 | Database unreachable |
 
+## Postman collection
+
+[`ParcelFlow.postman_collection.json`](ParcelFlow.postman_collection.json) covers every endpoint below —
+23 requests in four folders, with 14 test scripts.
+
+Import it, set `baseUrl` if you are not on `http://localhost:3000`, then run the three requests in the
+**Auth** folder first. Their test scripts save `customerToken`, `staffToken`, `adminToken` and `staffId`
+into collection variables, and **Create parcel** saves `parcelId` and `trackingCode`, so every other
+request works without pasting a token or an id by hand.
+
+It also carries the failure cases, each named with the code it expects: 422 for a `role` in the register
+body, 401 for a wrong password, 401 for an unknown email (identical response, by design), 409 for an
+illegal status transition, and 403 for a customer reaching a staff or admin route.
+
 ## Endpoints
 
 Authenticated routes want `Authorization: Bearer <token>`.
@@ -187,6 +202,10 @@ Authenticated routes want `Authorization: Bearer <token>`.
 ### `POST /auth/register`
 
 Creates a customer. The role is not read from the body and cannot be set.
+
+`name` is 2 to 80 characters, `email` must be a valid address and is trimmed and lowercased before
+storage, and `password` is 8 to 72 characters — 72 because bcrypt silently truncates past that, which
+would let two different passwords open the same account. Anything else gets a 422 naming the field.
 
 ```bash
 curl -X POST http://localhost:3000/auth/register \

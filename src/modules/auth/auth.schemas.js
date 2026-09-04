@@ -13,7 +13,7 @@ export const emailSchema = z
 // truncated, so two different passwords could unlock the same account.
 export const passwordSchema = z
   .string()
-  .min(1, 'Password is required')
+  .min(8, 'Password must be at least 8 characters')
   .max(72, 'Password must be at most 72 characters');
 
 // strictObject, not object: a client sending { role: 'ADMIN' } gets a 422

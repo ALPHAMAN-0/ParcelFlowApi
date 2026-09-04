@@ -11,7 +11,12 @@ function makeLimiter({ windowMs, max, code, message, store }) {
 
     passOnStoreError: true,
 
-    keyGenerator: (req) => ipKeyGenerator(req.get('cf-connecting-ip') || req.ip),
+    // req.ip and nothing else. A client-supplied header (CF-Connecting-IP,
+    // X-Real-IP) can be forged, and a fresh value per request would put every
+    // attempt in its own bucket — silently disabling the limit this file exists
+    // to enforce. Express derives req.ip from X-Forwarded-For using the
+    // `trust proxy` hop count set in app.js, which the client cannot influence.
+    keyGenerator: (req) => ipKeyGenerator(req.ip),
     skip: () => isTest, // the suite fires hundreds of requests from one IP
     store,
     handler: (req, res) => sendError(res, 429, { code, message, requestId: req.id }),

@@ -22,7 +22,8 @@ export function createApp() {
 
   app.disable('x-powered-by');
   // Behind a proxy the real client IP is in X-Forwarded-For. Trusting exactly
-  // one hop keeps rate limiting accurate without trusting arbitrary headers.
+  // three hops — the length of the chain this deploys behind — keeps rate
+  // limiting accurate without trusting arbitrary headers.
   app.set('trust proxy', isProduction ? 3 : false);
 
   app.use(requestId); // first, so every later failure can carry the id

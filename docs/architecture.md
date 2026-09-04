@@ -370,8 +370,9 @@ average-delivery-time aggregate in `admin.service.js` — is a static template l
 interpolated values at all.
 
 No endpoint returns a password hash. Every `select` in the codebase was traced to confirm it: the
-shared `publicUserSelect` omits the field, `parcelSelect` expands relations to id and name only, and
-`login()` — the one query that must read the hash — destructures it away before returning.
+shared `publicUserSelect` omits the field, `parcelSelect` trims relations to id and name (plus email on
+`assignedStaff`, so a customer can reach their courier), and `login()` — the one query that must read the
+hash — destructures it away before returning.
 
 ### Rate limiting
 
