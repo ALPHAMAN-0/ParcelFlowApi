@@ -15,15 +15,12 @@ import { adminRouter } from './modules/admin/admin.routes.js';
 
 const { name, version } = createRequire(import.meta.url)('../package.json');
 
-// Builds the app without binding a port, so tests can import it and drive it
-// with supertest. server.js is the only place that calls listen().
+
 export function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
-  // Behind a proxy the real client IP is in X-Forwarded-For. Trusting exactly
-  // three hops — the length of the chain this deploys behind — keeps rate
-  // limiting accurate without trusting arbitrary headers.
+
   app.set('trust proxy', isProduction ? 3 : false);
 
   app.use(requestId); // first, so every later failure can carry the id
@@ -32,7 +29,6 @@ export function createApp() {
   app.use(express.json({ limit: '100kb' })); // cap applied during parsing, not after
   app.use(requestLogger);
 
-  // --- service identity and health ------------------------------------------
   app.get('/', (_req, res) =>
     sendSuccess(res, 200, {
       service: name,
@@ -42,8 +38,7 @@ export function createApp() {
     }),
   );
 
-  // Shallow. Never touches the database, so an uptime monitor can hit it every
-  // 30 seconds forever without costing a connection.
+
   app.get('/health', (_req, res) => sendSuccess(res, 200, { status: 'ok', uptimeSeconds: Math.round(process.uptime()) }));
 
   // Deep. For deploys and manual checks.

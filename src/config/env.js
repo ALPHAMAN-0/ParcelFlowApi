@@ -27,11 +27,9 @@ const schema = z.object({
   RATE_LIMIT_LOGIN_MAX: z.coerce.number().int().positive().default(10),
   RATE_LIMIT_TRACKING_WINDOW_MS: z.coerce.number().int().positive().default(60 * 1000),
   RATE_LIMIT_TRACKING_MAX: z.coerce.number().int().positive().default(60),
-  // Seed credentials — development convenience only.
+
   SEED_ADMIN_EMAIL: z.string().email().default('admin@parcelflow.dev'),
-  // Deliberately NOT held to the 8-character registration policy: these are
-  // throwaway demo logins typed by hand during a review. The real policy lives in
-  // auth.schemas.js and still rejects anything shorter than 8 for /auth/register.
+  
   SEED_ADMIN_PASSWORD: z.string().min(1).default('123'),
   SEED_STAFF_PASSWORD: z.string().min(1).default('123'),
   SEED_CUSTOMER_PASSWORD: z.string().min(1).default('123'),

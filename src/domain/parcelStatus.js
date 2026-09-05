@@ -1,6 +1,3 @@
-// Parcel status rules. This module imports nothing, which is what makes it
-// testable without a database, a server, or a single mock.
-//
 // The flow is strictly linear:
 //   PENDING -> PICKED_UP -> IN_TRANSIT -> OUT_FOR_DELIVERY -> DELIVERED
 
@@ -28,8 +25,7 @@ export const STATUS_LABELS = Object.freeze({
   DELIVERED: 'Delivered',
 });
 
-// The specification, as data. Adding a status later means editing this object
-// and nothing else.
+
 export const TRANSITIONS = Object.freeze({
   PENDING: Object.freeze([ParcelStatus.PICKED_UP]),
   PICKED_UP: Object.freeze([ParcelStatus.IN_TRANSIT]),
@@ -50,13 +46,12 @@ export function isTerminal(status) {
   return isValidStatus(status) && TRANSITIONS[status].length === 0;
 }
 
-// True for the four legal moves only. Same-to-same is false, not a no-op.
+
 export function canTransition(from, to) {
   return nextStatuses(from).includes(to);
 }
 
-// Returns { ok: true }, or { ok: false, reason } with a message that names the
-// current status, the requested one, and the legal next step where there is one.
+
 export function explainTransition(from, to) {
   if (!isValidStatus(from)) return { ok: false, reason: `Unknown current status "${from}"` };
   if (!isValidStatus(to)) return { ok: false, reason: `Unknown target status "${to}"` };

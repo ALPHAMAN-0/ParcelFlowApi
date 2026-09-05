@@ -34,10 +34,7 @@ export const historySelect = {
 
 const historyOrdered = { select: historySelect, orderBy: { createdAt: 'asc' } };
 
-// Spread into the WHERE clause of every read. Customers see what they own,
-// staff see what is assigned to them, admins see everything. There is no
-// post-fetch ownership check anywhere, because a row outside the caller's
-// scope never leaves the database.
+
 export function scopeFor(user) {
   switch (user.role) {
     case 'ADMIN':
@@ -62,9 +59,7 @@ function isTrackingCodeCollision(err) {
 
 const MAX_CODE_ATTEMPTS = 5;
 
-// Parcel and its first history row (nothing -> PENDING) go in one transaction,
-// so the audit trail is complete from the first event. Tracking code uniqueness
-// comes from the UNIQUE constraint; a collision just retries.
+
 export async function createParcel(input, user) {
   for (let attempt = 1; attempt <= MAX_CODE_ATTEMPTS; attempt += 1) {
     const trackingCode = generateTrackingCode();
