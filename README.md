@@ -7,12 +7,18 @@ append-only history table.
 ## Architecture / How it Works
 
 ```mermaid
-flowchart LR
-    A[User] --> B[Parcelflowapi]
-    B --> C{Logic}
-    C --> D[(Data)]
-    C --> E[Output]
-    D --> C
+flowchart TD
+    Server_Entry --> App
+    App --> Middleware
+    App --> Auth_Module
+    App --> Parcels_Module
+    App --> Admin_Module
+    Auth_Module --> Domain
+    Parcels_Module --> Domain
+    Admin_Module --> Domain
+    Domain --> Prisma_Client
+    Middleware --> Prisma_Client
+    Prisma_Client --> Database
 ```
 
 
