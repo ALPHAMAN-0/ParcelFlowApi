@@ -1,6 +1,4 @@
 # --- secrets first: never commit environment files ---
-.env
-.env.*
 !.env.example
 
 # dependencies
@@ -13,5 +11,5 @@ npm-debug.log*
 
 # OS / editor
 .DS_Store
-.vscode/
 .idea/
+config.bat
