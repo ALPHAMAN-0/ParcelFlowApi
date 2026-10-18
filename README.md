@@ -4,6 +4,18 @@ Parcel delivery management. Customers create parcels, admins assign delivery sta
 staff move parcels through a fixed status flow. Every status change is written to an
 append-only history table.
 
+## Architecture / How it Works
+
+```mermaid
+flowchart LR
+    A[User] --> B[Parcelflowapi]
+    B --> C{Logic}
+    C --> D[(Data)]
+    C --> E[Output]
+    D --> C
+```
+
+
 Node.js 22, Express 5, PostgreSQL 16, Prisma 6, Zod 4, JWT, bcryptjs.
 
 ## Contents
