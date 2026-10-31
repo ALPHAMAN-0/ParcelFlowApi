@@ -8,8 +8,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "start": "node init && node src/server.js",
-    "dev": "node init && node --watch --env-file=.env src/server.js",
+    "start": "node src/server.js",
+    "dev": "node --watch --env-file=.env src/server.js",
     "check": "bash scripts/check.sh",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",

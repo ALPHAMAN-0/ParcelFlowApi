@@ -12,4 +12,3 @@ npm-debug.log*
 # OS / editor
 .DS_Store
 .idea/
-config.bat
